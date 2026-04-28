@@ -1,0 +1,89 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+@model KanbanBoard.LibrairieMetier.ViewModels.KanbanBoardViewModel
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 mt-3">
+    <div>
+        <a asp-action="MyBoards" class="text-decoration-none text-muted small">← Mes tableaux</a>
+        <h2 class="mb-0 mt-1">@Model.Title</h2>
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <p class="text-muted small mb-0">@Model.Description</p>
+        }
+    </div>
+</div>
+
+<div class="kanban-board d-flex gap-3 overflow-auto pb-3" style="min-height: 70vh;">
+    @foreach (var col in Model.Columns)
+    {
+        <div class="kanban-column flex-shrink-0" style="width: 300px;">
+            <div class="card h-100 bg-light">
+                <div class="card-header d-flex justify-content-between align-items-center bg-white">
+                    <h6 class="mb-0">@col.Title</h6>
+                    <span class="badge bg-secondary">@col.Cards.Count</span>
+                </div>
+                <div class="card-body p-2" data-column-id="@col.Id">
+                    @foreach (var card in col.Cards)
+                    {
+                        <div class="card mb-2 shadow-sm kanban-card" data-card-id="@card.Id">
+                            <div class="card-body p-2">
+                                <p class="mb-1 small fw-bold">@card.Title</p>
+                                @if (!string.IsNullOrWhiteSpace(card.Description))
+                                {
+                                    <p class="mb-1 small text-muted">
+                                        @(card.Description.Length > 80 ? card.Description.Substring(0, 80) + "..." : card.Description)
+                                    </p>
+                                }
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    @{
+                                        var priorityClass = card.Priority switch
+                                        {
+                                            "Critical" => "bg-danger",
+                                            "High" => "bg-warning text-dark",
+                                            "Low" => "bg-info text-dark",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @priorityClass small">@card.Priority</span>
+                                    @if (card.AssigneeUsername != null)
+                                    {
+                                        <small class="text-muted">👤 @card.AssigneeUsername</small>
+                                    }
+                                </div>
+                                @if (card.DueDate.HasValue)
+                                {
+                                    <small class="text-muted d-block mt-1">📅 @card.DueDate.Value.ToString("dd/MM/yyyy")</small>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                @if (Model.CanEdit)
+                {
+                    <div class="card-footer bg-white">
+                        <button class="btn btn-sm btn-outline-primary w-100" disabled>
+                            + Ajouter une carte
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .kanban-board { scroll-behavior: smooth; }
+        .kanban-column { min-width: 300px; }
+        .kanban-card { cursor: pointer; transition: transform 0.1s; }
+        .kanban-card:hover { transform: translateY(-2px); }
+    </style>
+}
