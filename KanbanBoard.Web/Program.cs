@@ -1,7 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+using KanbanBoard.AccesDonnee.EFCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// -- Enregistrement du DbContext (EF Core / SQL Server) --
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("KanbanBoardDb")
+    )
+);
 
 var app = builder.Build();
 
