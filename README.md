@@ -7,7 +7,7 @@ Tableau Kanban de collaboration d'équipe — Projet **PDR 7, MBDS 2025-2026**
 ## 🚀 Stack technique
 
 * **Backend** : ASP.NET Core 9.0 MVC + SignalR
-* **ORM** : Entity Framework Core 9.0 (Code First)
+* **ORM** : Entity Framework Core 9.0 (DataBase First / Scaffolding)
 * **Base de données** : SQL Server (LocalDB en développement)
 * **Authentification** : Cookie Authentication (custom) + BCrypt
 * **Frontend** : Razor + Bootstrap + Sortable.js
