@@ -19,4 +19,9 @@
 		<ProjectReference Include="..\KanbanBoard.LibrairieMetier\KanbanBoard.LibrairieMetier.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="EFCore\" />
+	  <Folder Include="Models\" />
+	</ItemGroup>
+
 </Project>
