@@ -1,6 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using KanbanBoard.AccesDonnee.EFCore;
+using KanbanBoard.AccesDonnee.Implementations;
+using KanbanBoard.LibrairieMetier.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +16,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         builder.Configuration.GetConnectionString("KanbanBoardDb")
     )
 );
+
+// -- Repositories (Pattern Data Access) --
+builder.Services.AddScoped<IBoardDA, BoardDA>();
+builder.Services.AddScoped<IColumnDA, ColumnDA>();
+builder.Services.AddScoped<ICardDA, CardDA>();
 
 // -- Authentification par cookie (maison) --
 builder.Services
