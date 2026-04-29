@@ -30,9 +30,8 @@ public class CardController : Controller
     {
         var userId = GetCurrentUserId();
 
-        // Vérifier que l'utilisateur a accès au board
-        var hasAccess = await _boardDA.UserHasAccessAsync(model.BoardId, userId);
-        if (!hasAccess)
+        // Seul un Admin peut créer une carte
+        if (!await _boardDA.UserIsAdminAsync(model.BoardId, userId))
             return Forbid();
 
         if (!ModelState.IsValid)
@@ -83,7 +82,7 @@ public class CardController : Controller
             Priority = card.Priority,
             DueDate = card.DueDate
         };
-
+        ViewData["IsAdmin"] = await _boardDA.UserIsAdminAsync(boardId.Value, userId);
         return View(model);
     }
 
@@ -133,8 +132,8 @@ public class CardController : Controller
     public async Task<IActionResult> Delete(int id, int boardId)
     {
         var userId = GetCurrentUserId();
-        var hasAccess = await _boardDA.UserHasAccessAsync(boardId, userId);
-        if (!hasAccess) return Forbid();
+        if (!await _boardDA.UserIsAdminAsync(boardId, userId))
+            return Forbid();
 
         var success = await _cardDA.DeleteCardAsync(id);
 
