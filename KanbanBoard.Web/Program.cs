@@ -3,12 +3,14 @@ using KanbanBoard.AccesDonnee.Implementations;
 using KanbanBoard.LibrairieMetier.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
+using KanbanBoard.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddSignalR();
 
 // -- Enregistrement du DbContext (EF Core / SQL Server) --
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -55,6 +57,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapHub<KanbanHub>("/kanbanHub");
 
 app.MapControllerRoute(
     name: "default",

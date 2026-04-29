@@ -3,6 +3,8 @@ using KanbanBoard.LibrairieMetier.Interfaces;
 using KanbanBoard.LibrairieMetier.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using KanbanBoard.Web.Hubs;
 
 namespace KanbanBoard.Web.Controllers;
 
@@ -11,11 +13,13 @@ public class CardController : Controller
 {
     private readonly ICardDA _cardDA;
     private readonly IBoardDA _boardDA;
+    private readonly IHubContext<KanbanHub> _hub;
 
-    public CardController(ICardDA cardDA, IBoardDA boardDA)
+    public CardController(ICardDA cardDA, IBoardDA boardDA, IHubContext<KanbanHub> hub)
     {
         _cardDA = cardDA;
         _boardDA = boardDA;
+        _hub = hub;
     }
 
     // ---------- CREATE ----------
@@ -37,7 +41,19 @@ public class CardController : Controller
             return RedirectToAction("Details", "Board", new { id = model.BoardId });
         }
 
-        await _cardDA.CreateCardAsync(model.ColumnId, model.Title, model.Description, userId);
+        var newCardId = await _cardDA.CreateCardAsync(model.ColumnId, model.Title, model.Description, userId);
+
+        // 🔔 Broadcaster à tous les utilisateurs connectés sur ce tableau
+        await _hub.Clients
+            .Group(KanbanHub.BoardGroupName(model.BoardId))
+            .SendAsync("BoardChanged", new
+            {
+                action = "CardCreated",
+                cardId = newCardId,
+                columnId = model.ColumnId,
+                title = model.Title,
+                triggeredBy = User.Identity?.Name
+            });
 
         TempData["SuccessMessage"] = $"Carte « {model.Title} » créée.";
         return RedirectToAction("Details", "Board", new { id = model.BoardId });
@@ -97,6 +113,15 @@ public class CardController : Controller
             return RedirectToAction("Details", "Board", new { id = model.BoardId });
         }
 
+        await _hub.Clients
+            .Group(KanbanHub.BoardGroupName(model.BoardId))
+            .SendAsync("BoardChanged", new
+            {
+                action = "CardUpdated",
+                cardId = model.Id,
+                title = model.Title,
+                triggeredBy = User.Identity?.Name
+            });
         TempData["SuccessMessage"] = "Carte mise à jour.";
         return RedirectToAction("Details", "Board", new { id = model.BoardId });
     }
@@ -114,7 +139,17 @@ public class CardController : Controller
         var success = await _cardDA.DeleteCardAsync(id);
 
         if (success)
+        {
+            await _hub.Clients
+                .Group(KanbanHub.BoardGroupName(boardId))
+                .SendAsync("BoardChanged", new
+                {
+                    action = "CardDeleted",
+                    cardId = id,
+                    triggeredBy = User.Identity?.Name
+                });
             TempData["SuccessMessage"] = "Carte supprimée.";
+        }
         else
             TempData["ErrorMessage"] = "Carte introuvable.";
 

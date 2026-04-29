@@ -158,7 +158,7 @@
 
 @section Scripts {
     <script>
-        // Pré-remplit le modal "Créer une carte" avec la bonne colonne
+        // ============ Modal créer carte (existant) ============
         document.addEventListener('DOMContentLoaded', function () {
             var modal = document.getElementById('createCardModal');
             modal.addEventListener('show.bs.modal', function (event) {
@@ -171,6 +171,60 @@
                 document.getElementById('cardTitle').value = '';
                 document.getElementById('cardDescription').value = '';
             });
+
+            // ============ SignalR : connexion temps réel ============
+            const boardId = @Model.BoardId;
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/kanbanHub")
+                .withAutomaticReconnect()
+                .build();
+
+            // Réception d'un évènement "BoardChanged"
+            connection.on("BoardChanged", function (payload) {
+                console.log("📡 BoardChanged reçu :", payload);
+
+                // Affiche un toast non-bloquant
+                showLiveNotification(payload);
+
+                // Recharge la page automatiquement après 1s pour voir les changements
+                // (version simple — Jour 3 on remplacera par une mise à jour DOM ciblée)
+                setTimeout(() => location.reload(), 1500);
+            });
+
+            // Démarrer la connexion puis rejoindre le groupe du board
+            connection.start()
+                .then(() => {
+                    console.log("✅ SignalR connecté");
+                    return connection.invoke("JoinBoard", boardId);
+                })
+                .then(() => console.log(`✅ Joint le board ${boardId}`))
+                .catch(err => console.error("❌ SignalR erreur :", err));
+
+            // Quitter le groupe quand on quitte la page (best effort)
+            window.addEventListener("beforeunload", () => {
+                connection.invoke("LeaveBoard", boardId).catch(() => {});
+            });
         });
+
+        // ============ Helper : toast notification ============
+        function showLiveNotification(payload) {
+            const messages = {
+                "CardCreated":  `🆕 Nouvelle carte « ${payload.title} » par ${payload.triggeredBy}`,
+                "CardUpdated":  `✏️ Carte « ${payload.title} » modifiée par ${payload.triggeredBy}`,
+                "CardDeleted":  `🗑️ Une carte a été supprimée par ${payload.triggeredBy}`
+            };
+
+            const msg = messages[payload.action] || `Mise à jour : ${payload.action}`;
+
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed top-0 end-0 m-3 alert alert-info shadow';
+            toast.style.zIndex = 9999;
+            toast.style.minWidth = '300px';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 4000);
+        }
     </script>
 }
