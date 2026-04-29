@@ -5,6 +5,11 @@ namespace KanbanBoard.LibrairieMetier.Interfaces;
 public interface ICardDA
 {
     Task<int> CreateCardAsync(int columnId, string title, string? description, int createdByUserId);
+
+    /// <summary>
+    /// Récupère le BoardId d'une carte (utile pour la redirection après une action).
+    /// </summary>
+    Task<int?> GetCardBoardIdAsync(int cardId);
     Task<KanbanCardViewModel?> GetCardAsync(int cardId);
     Task<bool> UpdateCardAsync(int cardId, string title, string? description, string priority, DateTime? dueDate, int? assigneeId);
     Task<bool> DeleteCardAsync(int cardId);

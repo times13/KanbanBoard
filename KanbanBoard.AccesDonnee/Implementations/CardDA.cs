@@ -37,6 +37,14 @@ public class CardDA : ICardDA
         return card.Id;
     }
 
+    public async Task<int?> GetCardBoardIdAsync(int cardId)
+    {
+        return await _db.CARDs
+            .Where(c => c.Id == cardId)
+            .Select(c => (int?)c.Column.BoardId)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<KanbanCardViewModel?> GetCardAsync(int cardId)
     {
         return await _db.CARDs
