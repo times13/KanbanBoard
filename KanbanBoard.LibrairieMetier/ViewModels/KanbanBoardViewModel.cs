@@ -7,6 +7,9 @@ public class KanbanBoardViewModel
     public string? Description { get; set; }
     public bool CanEdit { get; set; }   // l'utilisateur courant peut-il modifier ?
 
+    /// <summary>Peut gérer les colonnes (owner ou Admin).</summary>
+    public bool IsAdmin { get; set; }
+
     public List<KanbanColumnViewModel> Columns { get; set; } = new();
 }
 

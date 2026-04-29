@@ -42,7 +42,35 @@
             <div class="card h-100 bg-light">
                 <div class="card-header d-flex justify-content-between align-items-center bg-white">
                     <h6 class="mb-0">@col.Title</h6>
-                    <span class="badge bg-secondary">@col.Cards.Count</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-secondary">@col.Cards.Count</span>
+                        @if (Model.IsAdmin)
+                        {
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-link text-muted p-0 border-0" data-bs-toggle="dropdown" aria-expanded="false">
+                                    ⋮
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <button class="dropdown-item btn-rename-column"
+                                                data-column-id="@col.Id"
+                                                data-column-title="@col.Title">
+                                            ✏️ Renommer
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <button class="dropdown-item text-danger btn-delete-column"
+                                                data-column-id="@col.Id"
+                                                data-column-title="@col.Title"
+                                                data-card-count="@col.Cards.Count">
+                                            🗑️ Supprimer
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                    </div>
                 </div>
                 <div class="card-body p-2" data-column-id="@col.Id">
                     @foreach (var card in col.Cards)
@@ -98,6 +126,17 @@
             </div>
         </div>
     }
+    @if (Model.IsAdmin)
+    {
+        <div class="kanban-column flex-shrink-0" style="width: 300px;">
+            <button class="btn btn-outline-secondary w-100 h-100 d-flex align-items-center justify-content-center"
+                    style="border-style: dashed; min-height: 100px;"
+                    data-bs-toggle="modal"
+                    data-bs-target="#createColumnModal">
+                ➕ Ajouter une colonne
+            </button>
+        </div>
+    }
 </div>
 
 @* ============ Modal de création de carte ============ *@
@@ -133,6 +172,88 @@
         </div>
     </div>
 </div>
+
+@if (Model.IsAdmin)
+{
+    @* ============ Modal Créer Colonne ============ *@
+    <div class="modal fade" id="createColumnModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-controller="Column" asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="boardId" value="@Model.BoardId" />
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Nouvelle colonne</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="newColumnTitle" class="form-label">Titre de la colonne</label>
+                        <input type="text" name="title" id="newColumnTitle" class="form-control" maxlength="100" required autofocus />
+                        <small class="text-muted">Ex: « En revue », « Bloqué », « Tests »</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Créer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @* ============ Modal Renommer Colonne ============ *@
+    <div class="modal fade" id="renameColumnModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-controller="Column" asp-action="Rename" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="renameColumnId" />
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Renommer la colonne</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="renameColumnTitle" class="form-label">Nouveau titre</label>
+                        <input type="text" name="newTitle" id="renameColumnTitle" class="form-control" maxlength="100" required />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Renommer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @* ============ Modal Supprimer Colonne ============ *@
+    <div class="modal fade" id="deleteColumnModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-controller="Column" asp-action="Delete" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="deleteColumnId" />
+
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger">⚠️ Supprimer la colonne ?</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Vous êtes sur le point de supprimer la colonne <strong id="deleteColumnTitle"></strong>.</p>
+                        <div id="deleteColumnWarning" class="alert alert-warning" style="display: none;">
+                            <strong>Attention :</strong> cette colonne contient <span id="deleteColumnCardCount"></span> carte(s) qui seront <strong>définitivement supprimées</strong>.
+                        </div>
+                        <p class="text-muted small mb-0">Cette action est <strong>irréversible</strong>.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
 
 @section Styles {
     <style>
@@ -205,6 +326,35 @@
             window.addEventListener("beforeunload", () => {
                 connection.invoke("LeaveBoard", boardId).catch(() => {});
             });
+
+            // ============ Modal Renommer Colonne ============
+            document.querySelectorAll('.btn-rename-column').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    document.getElementById('renameColumnId').value = this.dataset.columnId;
+                    document.getElementById('renameColumnTitle').value = this.dataset.columnTitle;
+                    new bootstrap.Modal(document.getElementById('renameColumnModal')).show();
+                });
+            });
+
+            // ============ Modal Supprimer Colonne ============
+            document.querySelectorAll('.btn-delete-column').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const cardCount = parseInt(this.dataset.cardCount, 10);
+                    document.getElementById('deleteColumnId').value = this.dataset.columnId;
+                    document.getElementById('deleteColumnTitle').textContent = '« ' + this.dataset.columnTitle + ' »';
+
+                    const warning = document.getElementById('deleteColumnWarning');
+                    if (cardCount > 0) {
+                        document.getElementById('deleteColumnCardCount').textContent = cardCount;
+                        warning.style.display = 'block';
+                    } else {
+                        warning.style.display = 'none';
+                    }
+
+                    new bootstrap.Modal(document.getElementById('deleteColumnModal')).show();
+                });
+            });
+
         });
 
         // ============ Helper : toast notification ============
@@ -212,7 +362,10 @@
             const messages = {
                 "CardCreated":  `🆕 Nouvelle carte « ${payload.title} » par ${payload.triggeredBy}`,
                 "CardUpdated":  `✏️ Carte « ${payload.title} » modifiée par ${payload.triggeredBy}`,
-                "CardDeleted":  `🗑️ Une carte a été supprimée par ${payload.triggeredBy}`
+                "CardDeleted":  `🗑️ Une carte a été supprimée par ${payload.triggeredBy}`,
+                "ColumnCreated": `➕ Nouvelle colonne « ${payload.title} » par ${payload.triggeredBy}`,
+                "ColumnRenamed": `✏️ Colonne renommée en « ${payload.title} » par ${payload.triggeredBy}`,
+                "ColumnDeleted": `🗑️ Une colonne a été supprimée par ${payload.triggeredBy}`
             };
 
             const msg = messages[payload.action] || `Mise à jour : ${payload.action}`;

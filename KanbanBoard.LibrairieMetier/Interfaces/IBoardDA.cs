@@ -26,4 +26,9 @@ public interface IBoardDA
     /// Vérifie si un utilisateur a accès à un board (owner ou membre).
     /// </summary>
     Task<bool> UserHasAccessAsync(int boardId, int userId);
+
+    /// <summary>
+    /// Vérifie si l'utilisateur est Admin du board (owner OU membre avec Role='Admin').
+    /// </summary>
+    Task<bool> UserIsAdminAsync(int boardId, int userId);
 }

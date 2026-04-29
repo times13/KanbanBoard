@@ -50,7 +50,9 @@ public class BoardDA : IBoardDA
                 Title = b.Title,
                 Description = b.Description,
                 CanEdit = b.OwnerId == userId
-                       || _db.BOARD_MEMBERs.Any(m => m.BoardId == b.Id && m.UserId == userId && m.Role != "Viewer")
+                       || _db.BOARD_MEMBERs.Any(m => m.BoardId == b.Id && m.UserId == userId && m.Role != "Viewer"),
+                IsAdmin = b.OwnerId == userId
+                       || _db.BOARD_MEMBERs.Any(m => m.BoardId == b.Id && m.UserId == userId && m.Role == "Admin")
             })
             .FirstOrDefaultAsync();
 
@@ -135,5 +137,16 @@ public class BoardDA : IBoardDA
             .AnyAsync(b => b.Id == boardId
                         && (b.OwnerId == userId
                          || _db.BOARD_MEMBERs.Any(m => m.BoardId == boardId && m.UserId == userId)));
+    }
+
+    public async Task<bool> UserIsAdminAsync(int boardId, int userId)
+    {
+        return await _db.BOARDs
+            .AnyAsync(b => b.Id == boardId
+                        && (b.OwnerId == userId
+                         || _db.BOARD_MEMBERs.Any(m =>
+                                m.BoardId == boardId
+                             && m.UserId == userId
+                             && m.Role == "Admin")));
     }
 }

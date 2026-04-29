@@ -2,7 +2,6 @@
 using KanbanBoard.AccesDonnee.Models;
 using KanbanBoard.LibrairieMetier.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace KanbanBoard.AccesDonnee.Implementations;
 
@@ -48,8 +47,23 @@ public class ColumnDA : IColumnDA
         var col = await _db.BOARD_COLUMNs.FindAsync(columnId);
         if (col == null) return false;
 
+        // Cascade SQL Server supprimera automatiquement les cartes
         _db.BOARD_COLUMNs.Remove(col);
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<int?> GetColumnBoardIdAsync(int columnId)
+    {
+        return await _db.BOARD_COLUMNs
+            .Where(c => c.Id == columnId)
+            .Select(c => (int?)c.BoardId)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<int> CountCardsAsync(int columnId)
+    {
+        return await _db.CARDs
+            .CountAsync(c => c.ColumnId == columnId && !c.IsArchived);
     }
 }
