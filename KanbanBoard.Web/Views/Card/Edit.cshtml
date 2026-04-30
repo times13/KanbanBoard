@@ -158,4 +158,91 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // ============ Configuration ============
+            const boardId = @Model.BoardId;
+            const currentCardId = @Model.Id;
+            const currentUser = @Html.Raw(Json.Serialize(User.Identity?.Name ?? ""));
+
+            // ============ Connexion SignalR ============
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/kanbanHub")
+                .withAutomaticReconnect()
+                .configureLogging(signalR.LogLevel.Warning)
+                .build();
+
+            // ============ Réception des événements ============
+            connection.on("BoardChanged", function (payload) {
+                // Ignorer mes propres actions
+                if (payload.triggeredBy === currentUser) return;
+
+                // Détermine si l'événement concerne CETTE carte
+                const isAboutThisCard = payload.cardId === currentCardId;
+
+                showLiveNotification(payload, isAboutThisCard);
+
+                // Reload SEULEMENT si c'est la même carte
+                if (isAboutThisCard) {
+                    setTimeout(() => location.reload(), 1500);
+                }
+            });
+
+            connection.on("CardMoved", function (payload) {
+                if (payload.triggeredBy === currentUser) return;
+
+                const isAboutThisCard = payload.cardId === currentCardId;
+
+                showLiveNotification({
+                    action: "CardMoved",
+                    title: "",
+                    triggeredBy: payload.triggeredBy,
+                    cardId: payload.cardId
+                }, isAboutThisCard);
+
+                if (isAboutThisCard) {
+                    setTimeout(() => location.reload(), 1500);
+                }
+            });
+
+            // Démarrer la connexion + rejoindre le groupe
+            connection.start()
+                .then(() => connection.invoke("JoinBoard", boardId))
+                .catch(err => console.error("SignalR error:", err));
+
+            // Quitter le groupe à la sortie de page
+            window.addEventListener("beforeunload", () => {
+                connection.invoke("LeaveBoard", boardId).catch(() => {});
+            });
+        });
+
+        // ============ Helper toast ============
+        function showLiveNotification(payload, isAboutThisCard) {
+            const messages = {
+                "CardCreated":   `🆕 Nouvelle carte « ${payload.title} » par ${payload.triggeredBy}`,
+                "CardUpdated":   `✏️ Carte « ${payload.title} » modifiée par ${payload.triggeredBy}`,
+                "CardDeleted":   `🗑️ Une carte a été supprimée par ${payload.triggeredBy}`,
+                "CardMoved":     `↔️ Une carte a été déplacée par ${payload.triggeredBy}`,
+                "CommentAdded":  `💬 Nouveau commentaire par ${payload.triggeredBy}`,
+                "CommentDeleted":`💬 Commentaire supprimé par ${payload.triggeredBy}`,
+                "ColumnCreated": `➕ Nouvelle colonne « ${payload.title} » par ${payload.triggeredBy}`,
+                "ColumnRenamed": `✏️ Colonne renommée en « ${payload.title} » par ${payload.triggeredBy}`,
+                "ColumnDeleted": `🗑️ Une colonne a été supprimée par ${payload.triggeredBy}`
+            };
+            const msg = messages[payload.action] || `Mise à jour : ${payload.action}`;
+
+            const toast = document.createElement('div');
+            // Couleur différente selon "concerne moi ou pas"
+            toast.className = isAboutThisCard
+                ? 'position-fixed top-0 end-0 m-3 alert alert-warning shadow'
+                : 'position-fixed top-0 end-0 m-3 alert alert-info shadow';
+            toast.style.zIndex = 9999;
+            toast.style.minWidth = '300px';
+            toast.textContent = (isAboutThisCard ? "👁️ Cette carte : " : "") + msg;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 4000);
+        }
+    </script>
 }
