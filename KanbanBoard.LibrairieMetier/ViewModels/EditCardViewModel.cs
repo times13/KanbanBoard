@@ -26,4 +26,20 @@ public class EditCardViewModel
     [DataType(DataType.Date)]
     [Display(Name = "Date d'échéance")]
     public DateTime? DueDate { get; set; }
+
+    // -- Assignee --
+    [Display(Name = "Assigné à")]
+    public int? AssigneeId { get; set; }
+
+    /// <summary>Liste des membres du board (pour le dropdown). Rempli côté controller.</summary>
+    public List<BoardMemberItemViewModel> AvailableMembers { get; set; } = new();
+
+    /// <summary>Username de l'assignee actuel (pour affichage). Rempli côté controller.</summary>
+    public string? CurrentAssigneeUsername { get; set; }
+
+    // -- Commentaires --
+    public List<CommentViewModel> Comments { get; set; } = new();
+
+    [StringLength(2000, ErrorMessage = "Le commentaire est trop long (2000 caractères max).")]
+    public string? NewComment { get; set; }
 }

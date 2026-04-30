@@ -57,6 +57,7 @@ public class CardDA : ICardDA
                 Priority = c.Priority,
                 Position = c.Position,
                 DueDate = c.DueDate,
+                AssigneeId = c.AssigneeId,
                 AssigneeUsername = c.Assignee != null ? c.Assignee.Username : null,
                 IsArchived = c.IsArchived
             })

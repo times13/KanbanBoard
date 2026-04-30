@@ -31,4 +31,7 @@ public interface IBoardDA
     /// Vérifie si l'utilisateur est Admin du board (owner OU membre avec Role='Admin').
     /// </summary>
     Task<bool> UserIsAdminAsync(int boardId, int userId);
+
+    /// <summary>Liste les membres d'un board (pour le dropdown assignee).</summary>
+    Task<List<BoardMemberItemViewModel>> GetMembersAsync(int boardId);
 }

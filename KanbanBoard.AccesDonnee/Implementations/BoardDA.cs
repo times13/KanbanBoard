@@ -80,7 +80,8 @@ public class BoardDA : IBoardDA
                         Position = card.Position,
                         DueDate = card.DueDate,
                         AssigneeUsername = card.Assignee != null ? card.Assignee.Username : null,
-                        IsArchived = card.IsArchived
+                        IsArchived = card.IsArchived,
+                        CommentCount = card.COMMENTs.Count(co => true)
                     })
                     .ToList()
             })
@@ -148,5 +149,46 @@ public class BoardDA : IBoardDA
                                 m.BoardId == boardId
                              && m.UserId == userId
                              && m.Role == "Admin")));
+    }
+
+    public async Task<List<BoardMemberItemViewModel>> GetMembersAsync(int boardId)
+    {
+        // Récupère l'owner + les membres explicites, déduplique
+        var board = await _db.BOARDs
+            .Where(b => b.Id == boardId)
+            .Select(b => new { b.OwnerId })
+            .FirstOrDefaultAsync();
+
+        if (board == null) return new List<BoardMemberItemViewModel>();
+
+        var members = await _db.BOARD_MEMBERs
+            .Where(m => m.BoardId == boardId)
+            .Select(m => new BoardMemberItemViewModel
+            {
+                UserId = m.UserId,
+                Username = m.User.Username,
+                Email = m.User.Email,
+                Role = m.Role
+            })
+            .ToListAsync();
+
+        // S'assurer que l'owner est bien dans la liste (au cas où il ne serait pas dans BOARD_MEMBER)
+        if (!members.Any(m => m.UserId == board.OwnerId))
+        {
+            var owner = await _db.USERs
+                .Where(u => u.Id == board.OwnerId)
+                .Select(u => new BoardMemberItemViewModel
+                {
+                    UserId = u.Id,
+                    Username = u.Username,
+                    Email = u.Email,
+                    Role = "Admin"
+                })
+                .FirstOrDefaultAsync();
+
+            if (owner != null) members.Insert(0, owner);
+        }
+
+        return members.OrderBy(m => m.Username).ToList();
     }
 }

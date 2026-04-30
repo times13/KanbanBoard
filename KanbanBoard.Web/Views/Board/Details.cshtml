@@ -97,10 +97,18 @@
                                         };
                                     }
                                     <span class="badge @priorityClass small">@card.Priority</span>
-                                    @if (card.AssigneeUsername != null)
-                                    {
-                                        <small class="text-muted">👤 @card.AssigneeUsername</small>
-                                    }
+                                    <div class="d-flex gap-2 align-items-center">
+                                        @if (card.CommentCount > 0)
+                                        {
+                                            <small class="text-muted" title="@card.CommentCount commentaire(s)">
+                                                💬 @card.CommentCount
+                                            </small>
+                                        }
+                                        @if (card.AssigneeUsername != null)
+                                        {
+                                            <small class="text-muted">👤 @card.AssigneeUsername</small>
+                                        }
+                                    </div>
                                 </div>
                                 @if (card.DueDate.HasValue)
                                 {

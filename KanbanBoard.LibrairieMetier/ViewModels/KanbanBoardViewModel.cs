@@ -31,6 +31,8 @@ public class KanbanCardViewModel
     public string Priority { get; set; } = "Medium";
     public int Position { get; set; }
     public DateTime? DueDate { get; set; }
+    public int? AssigneeId { get; set; }
     public string? AssigneeUsername { get; set; }
     public bool IsArchived { get; set; }
+    public int CommentCount { get; set; }
 }

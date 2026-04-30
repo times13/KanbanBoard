@@ -13,12 +13,14 @@ public class CardController : Controller
 {
     private readonly ICardDA _cardDA;
     private readonly IBoardDA _boardDA;
+    private readonly ICommentDA _commentDA;
     private readonly IHubContext<KanbanHub> _hub;
 
-    public CardController(ICardDA cardDA, IBoardDA boardDA, IHubContext<KanbanHub> hub)
+    public CardController(ICardDA cardDA, IBoardDA boardDA, ICommentDA commentDA, IHubContext<KanbanHub> hub)
     {
         _cardDA = cardDA;
         _boardDA = boardDA;
+        _commentDA = commentDA;
         _hub = hub;
     }
 
@@ -73,6 +75,9 @@ public class CardController : Controller
         var hasAccess = await _boardDA.UserHasAccessAsync(boardId.Value, userId);
         if (!hasAccess) return Forbid();
 
+        var members = await _boardDA.GetMembersAsync(boardId.Value);
+        var comments = await _commentDA.GetForCardAsync(id);
+
         var model = new EditCardViewModel
         {
             Id = card.Id,
@@ -80,9 +85,15 @@ public class CardController : Controller
             Title = card.Title,
             Description = card.Description,
             Priority = card.Priority,
-            DueDate = card.DueDate
+            DueDate = card.DueDate,
+            AssigneeId = card.AssigneeId,
+            AvailableMembers = members,
+            CurrentAssigneeUsername = card.AssigneeUsername,
+            Comments = comments
         };
+
         ViewData["IsAdmin"] = await _boardDA.UserIsAdminAsync(boardId.Value, userId);
+        ViewData["CurrentUserId"] = userId;
         return View(model);
     }
 
@@ -95,7 +106,11 @@ public class CardController : Controller
         if (!hasAccess) return Forbid();
 
         if (!ModelState.IsValid)
+        {
+            model.AvailableMembers = await _boardDA.GetMembersAsync(model.BoardId);
+            model.Comments = await _commentDA.GetForCardAsync(model.Id);
             return View(model);
+        }
 
         var success = await _cardDA.UpdateCardAsync(
             model.Id,
@@ -103,7 +118,7 @@ public class CardController : Controller
             model.Description,
             model.Priority,
             model.DueDate,
-            null   // assigneeId sera géré plus tard
+            model.AssigneeId    // assigneeId sera géré plus tard
         );
 
         if (!success)
