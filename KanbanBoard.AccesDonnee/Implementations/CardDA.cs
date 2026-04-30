@@ -91,14 +91,43 @@ public class CardDA : ICardDA
 
     public async Task<bool> MoveCardAsync(int cardId, int targetColumnId, int newPosition)
     {
+        using var tx = await _db.Database.BeginTransactionAsync();
+
         var card = await _db.CARDs.FindAsync(cardId);
         if (card == null) return false;
 
+        var sourceColumnId = card.ColumnId;
+
+        // 1. Si on change de colonne, "fermer le trou" dans la colonne source
+        if (sourceColumnId != targetColumnId)
+        {
+            var sourceCards = await _db.CARDs
+                .Where(c => c.ColumnId == sourceColumnId && c.Position > card.Position && !c.IsArchived)
+                .ToListAsync();
+
+            foreach (var c in sourceCards)
+                c.Position--;
+        }
+
+        // 2. Décaler les cartes de la colonne cible pour faire de la place
+        var targetCards = await _db.CARDs
+            .Where(c => c.ColumnId == targetColumnId
+                     && c.Id != cardId
+                     && c.Position >= newPosition
+                     && !c.IsArchived)
+            .ToListAsync();
+
+        foreach (var c in targetCards)
+            c.Position++;
+
+        // 3. Replacer la carte
         card.ColumnId = targetColumnId;
         card.Position = newPosition;
         card.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+        await tx.CommitAsync();
+
         return true;
     }
 }

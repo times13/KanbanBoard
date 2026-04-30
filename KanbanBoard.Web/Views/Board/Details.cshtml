@@ -75,40 +75,39 @@
                 <div class="card-body p-2" data-column-id="@col.Id">
                     @foreach (var card in col.Cards)
                     {
-                        <a asp-controller="Card" asp-action="Edit" asp-route-id="@card.Id"
-                           class="text-decoration-none text-dark">
-                            <div class="card mb-2 shadow-sm kanban-card" data-card-id="@card.Id">
-                                <div class="card-body p-2">
-                                    <p class="mb-1 small fw-bold">@card.Title</p>
-                                    @if (!string.IsNullOrWhiteSpace(card.Description))
-                                    {
-                                        <p class="mb-1 small text-muted">
-                                            @(card.Description.Length > 80 ? card.Description.Substring(0, 80) + "..." : card.Description)
-                                        </p>
-                                    }
-                                    <div class="d-flex justify-content-between align-items-center mt-2">
-                                        @{
-                                            var priorityClass = card.Priority switch
-                                            {
-                                                "Critical" => "bg-danger",
-                                                "High" => "bg-warning text-dark",
-                                                "Low" => "bg-info text-dark",
-                                                _ => "bg-secondary"
-                                            };
-                                        }
-                                        <span class="badge @priorityClass small">@card.Priority</span>
-                                        @if (card.AssigneeUsername != null)
+                        <div class="card mb-2 shadow-sm kanban-card"
+                             data-card-id="@card.Id"
+                             data-card-edit-url="@Url.Action("Edit", "Card", new { id = card.Id })">
+                            <div class="card-body p-2">
+                                <p class="mb-1 small fw-bold">@card.Title</p>
+                                @if (!string.IsNullOrWhiteSpace(card.Description))
+                                {
+                                    <p class="mb-1 small text-muted">
+                                        @(card.Description.Length > 80 ? card.Description.Substring(0, 80) + "..." : card.Description)
+                                    </p>
+                                }
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    @{
+                                        var priorityClass = card.Priority switch
                                         {
-                                            <small class="text-muted">👤 @card.AssigneeUsername</small>
-                                        }
-                                    </div>
-                                    @if (card.DueDate.HasValue)
+                                            "Critical" => "bg-danger",
+                                            "High" => "bg-warning text-dark",
+                                            "Low" => "bg-info text-dark",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @priorityClass small">@card.Priority</span>
+                                    @if (card.AssigneeUsername != null)
                                     {
-                                        <small class="text-muted d-block mt-1">📅 @card.DueDate.Value.ToString("dd/MM/yyyy")</small>
+                                        <small class="text-muted">👤 @card.AssigneeUsername</small>
                                     }
                                 </div>
+                                @if (card.DueDate.HasValue)
+                                {
+                                    <small class="text-muted d-block mt-1">📅 @card.DueDate.Value.ToString("dd/MM/yyyy")</small>
+                                }
                             </div>
-                        </a>
+                        </div>
                     }
                 </div>
                 @if (Model.IsAdmin)
@@ -266,7 +265,7 @@
         }
 
         .kanban-card {
-            cursor: pointer;
+            cursor: grab; /* curseur "main ouverte" pour suggérer le drag */
             transition: transform 0.1s;
         }
 
@@ -274,6 +273,25 @@
                 transform: translateY(-2px);
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
             }
+
+            .kanban-card:active {
+                cursor: grabbing; /* curseur "main fermée" quand on appuie */
+            }
+
+        /* === Styles Sortable.js === */
+        .sortable-ghost {
+            opacity: 0.4;
+            background: #cfe2ff !important;
+        }
+
+        .sortable-chosen {
+            cursor: grabbing !important;
+        }
+
+        .sortable-drag {
+            transform: rotate(3deg);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
+        }
     </style>
 }
 
@@ -295,6 +313,7 @@
 
             // ============ SignalR : connexion temps réel ============
             const boardId = @Model.BoardId;
+            const currentUser = @Html.Raw(Json.Serialize(User.Identity?.Name ?? ""));
 
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl("/kanbanHub")
@@ -354,6 +373,76 @@
                     new bootstrap.Modal(document.getElementById('deleteColumnModal')).show();
                 });
             });
+            // ============ Drag & Drop avec Sortable.js ============
+            const canEdit = @(Model.CanEdit ? "true" : "false");
+            const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            if (canEdit) {
+                document.querySelectorAll('.card-body[data-column-id]').forEach(columnBody => {
+                    new Sortable(columnBody, {
+                        group: 'kanban-cards',
+                        animation: 150,
+                        ghostClass: 'sortable-ghost',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        onEnd: async function (evt) {
+                            const cardElement = evt.item;
+                            const cardId = parseInt(cardElement.dataset.cardId, 10);
+                            const targetColumnId = parseInt(evt.to.dataset.columnId, 10);
+                            const newPosition = evt.newIndex;
+
+                            try {
+                                const response = await fetch('/Card/Move', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'RequestVerificationToken': antiForgeryToken
+                                    },
+                                    body: JSON.stringify({
+                                        cardId: cardId,
+                                        targetColumnId: targetColumnId,
+                                        newPosition: newPosition,
+                                        boardId: boardId
+                                    })
+                                });
+
+                                if (!response.ok) {
+                                    console.error("Échec du déplacement, rechargement...");
+                                    location.reload();
+                                } else {
+                                   updateColumnCounters();
+                                }
+
+                            } catch (err) {
+                                console.error("Erreur réseau, rechargement", err);
+                                location.reload();
+                            }
+                        }
+                    });
+                });
+            }
+
+            // ============ Réception SignalR : carte déplacée ailleurs ============
+            connection.on("CardMoved", function (payload) {
+                if (payload.triggeredBy === currentUser) return;
+
+                showLiveNotification({
+                    action: "CardMoved",
+                    title: "",
+                    triggeredBy: payload.triggeredBy
+                });
+
+                // Pour la simplicité, on recharge (Jour 4 on fera mieux avec DOM update)
+                setTimeout(() => location.reload(), 1500);
+            });
+
+            // ============ Click sur une carte → édition (Sortable bloque le click pendant un drag) ============
+            document.querySelectorAll('.kanban-card[data-card-edit-url]').forEach(cardEl => {
+                cardEl.addEventListener('click', function () {
+                    const url = this.dataset.cardEditUrl;
+                    if (url) window.location.href = url;
+                });
+            });
 
         });
 
@@ -379,5 +468,18 @@
 
             setTimeout(() => toast.remove(), 4000);
         }
+
+                // ============ Mise à jour des compteurs de cartes par colonne ============
+        function updateColumnCounters() {
+            document.querySelectorAll('.card-body[data-column-id]').forEach(columnBody => {
+                const count = columnBody.querySelectorAll('.kanban-card').length;
+                const header = columnBody.previousElementSibling;
+                if (header) {
+                    const badge = header.querySelector('.badge.bg-secondary');
+                    if (badge) badge.textContent = count;
+                }
+            });
+        }
+
     </script>
 }

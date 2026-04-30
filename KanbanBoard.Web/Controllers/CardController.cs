@@ -155,6 +155,44 @@ public class CardController : Controller
         return RedirectToAction("Details", "Board", new { id = boardId });
     }
 
+    // ---------- MOVE (drag & drop) ----------
+
+    public class MoveCardRequest
+    {
+        public int CardId { get; set; }
+        public int TargetColumnId { get; set; }
+        public int NewPosition { get; set; }
+        public int BoardId { get; set; }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Move([FromBody] MoveCardRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        // Membre ou Admin peut déplacer (Viewer non — UserHasAccess + role check)
+        if (!await _boardDA.UserHasAccessAsync(request.BoardId, userId))
+            return Forbid();
+
+        var success = await _cardDA.MoveCardAsync(request.CardId, request.TargetColumnId, request.NewPosition);
+        if (!success)
+            return NotFound();
+
+        // Broadcast aux autres clients
+        await _hub.Clients
+            .Group(KanbanHub.BoardGroupName(request.BoardId))
+            .SendAsync("CardMoved", new
+            {
+                cardId = request.CardId,
+                targetColumnId = request.TargetColumnId,
+                newPosition = request.NewPosition,
+                triggeredBy = User.Identity?.Name
+            });
+
+        return Ok(new { success = true });
+    }
+
     // ---------- HELPER ----------
 
     private int GetCurrentUserId()
