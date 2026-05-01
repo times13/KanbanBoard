@@ -18,6 +18,30 @@
             </a>
         </div>
 
+        @* ============ Messages TempData ============ *@
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @* ============ Bandeau lecture seule ============ *@
+        @if (ViewData["CanWrite"] is false)
+        {
+            <div class="alert alert-info" role="alert">
+                👁️ <strong>Mode lecture seule</strong> — Vous êtes en tant que Viewer sur ce tableau et ne pouvez ni modifier la carte, ni commenter.
+            </div>
+        }
+
         @* ============ Formulaire d'édition ============ *@
         <form asp-action="Edit" method="post">
             <input type="hidden" asp-for="Id" />
@@ -27,51 +51,102 @@
 
             <div class="mb-3">
                 <label asp-for="Title" class="form-label"></label>
-                <input asp-for="Title" class="form-control" autofocus />
+                @if (ViewData["CanWrite"] is false)
+                {
+                    <input asp-for="Title" class="form-control" disabled />
+                }
+                else
+                {
+                    <input asp-for="Title" class="form-control" autofocus />
+                }
                 <span asp-validation-for="Title" class="text-danger"></span>
             </div>
 
             <div class="mb-3">
                 <label asp-for="Description" class="form-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="5"></textarea>
+                @if (ViewData["CanWrite"] is false)
+                {
+                    <textarea asp-for="Description" class="form-control" rows="5" disabled></textarea>
+                }
+                else
+                {
+                    <textarea asp-for="Description" class="form-control" rows="5"></textarea>
+                }
                 <span asp-validation-for="Description" class="text-danger"></span>
             </div>
 
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label asp-for="Priority" class="form-label"></label>
-                    <select asp-for="Priority" class="form-select">
-                        <option value="Low">🟢 Basse</option>
-                        <option value="Medium">🟡 Moyenne</option>
-                        <option value="High">🟠 Haute</option>
-                        <option value="Critical">🔴 Critique</option>
-                    </select>
+                    @if (ViewData["CanWrite"] is false)
+                    {
+                        <select asp-for="Priority" class="form-select" disabled>
+                            <option value="Low">🟢 Basse</option>
+                            <option value="Medium">🟡 Moyenne</option>
+                            <option value="High">🟠 Haute</option>
+                            <option value="Critical">🔴 Critique</option>
+                        </select>
+                    }
+                    else
+                    {
+                        <select asp-for="Priority" class="form-select">
+                            <option value="Low">🟢 Basse</option>
+                            <option value="Medium">🟡 Moyenne</option>
+                            <option value="High">🟠 Haute</option>
+                            <option value="Critical">🔴 Critique</option>
+                        </select>
+                    }
                 </div>
 
                 <div class="col-md-4 mb-3">
                     <label asp-for="DueDate" class="form-label"></label>
-                    <input asp-for="DueDate" type="date" class="form-control" />
+                    @if (ViewData["CanWrite"] is false)
+                    {
+                        <input asp-for="DueDate" type="date" class="form-control" disabled />
+                    }
+                    else
+                    {
+                        <input asp-for="DueDate" type="date" class="form-control" />
+                    }
                     <span asp-validation-for="DueDate" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-4 mb-3">
                     <label asp-for="AssigneeId" class="form-label"></label>
-                    <select asp-for="AssigneeId" class="form-select">
-                        <option value="">— Personne —</option>
-                        @foreach (var member in Model.AvailableMembers)
-                        {
-                            <option value="@member.UserId">
-                                @member.Username (@member.Role)
-                            </option>
-                        }
-                    </select>
+                    @if (ViewData["CanWrite"] is false)
+                    {
+                        <select asp-for="AssigneeId" class="form-select" disabled>
+                            <option value="">— Personne —</option>
+                            @foreach (var member in Model.AvailableMembers)
+                            {
+                                <option value="@member.UserId">
+                                    @member.Username (@member.Role)
+                                </option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <select asp-for="AssigneeId" class="form-select">
+                            <option value="">— Personne —</option>
+                            @foreach (var member in Model.AvailableMembers)
+                            {
+                                <option value="@member.UserId">
+                                    @member.Username (@member.Role)
+                                </option>
+                            }
+                        </select>
+                    }
                     <span asp-validation-for="AssigneeId" class="text-danger"></span>
                 </div>
             </div>
 
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
-            </div>
+            @if (ViewData["CanWrite"] is true)
+            {
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+                </div>
+            }
         </form>
 
     @if (ViewData["IsAdmin"] is true)
@@ -94,20 +169,29 @@
             <div class="col-md-12">
                 <h4 class="mb-3">💬 Commentaires <span class="badge bg-secondary">@Model.Comments.Count</span></h4>
 
-                @* Formulaire ajout commentaire *@
-                <form asp-controller="Comment" asp-action="Add" method="post" class="mb-4">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="cardId" value="@Model.Id" />
-                    <input type="hidden" name="boardId" value="@Model.BoardId" />
+                @* Formulaire ajout commentaire — uniquement pour les non-Viewers *@
+                @if (ViewData["CanWrite"] is true)
+                {
+                    <form asp-controller="Comment" asp-action="Add" method="post" class="mb-4">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="cardId" value="@Model.Id" />
+                        <input type="hidden" name="boardId" value="@Model.BoardId" />
 
-                    <div class="mb-2">
-                        <textarea name="content" class="form-control"
+                        <div class="mb-2">
+                            <textarea name="content" class="form-control"
                                   rows="2" maxlength="2000"
                                   placeholder="Écrire un commentaire..."
                                   required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-sm btn-primary">Commenter</button>
-                </form>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary">Commenter</button>
+                    </form>
+                }
+                else
+                {
+                    <p class="text-muted small mb-3">
+                        🔒 Les commentaires sont visibles mais vous ne pouvez pas en ajouter en mode lecture seule.
+                    </p>
+                }
 
                 @* Liste des commentaires *@
                 @if (!Model.Comments.Any())

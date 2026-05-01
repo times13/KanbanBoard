@@ -99,6 +99,7 @@ public class CardController : Controller
 
         ViewData["IsAdmin"] = await _boardDA.UserIsAdminAsync(boardId.Value, userId);
         ViewData["CurrentUserId"] = userId;
+        ViewData["CanWrite"] = await _boardDA.UserCanWriteAsync(boardId.Value, userId);
         return View(model);
     }
 
@@ -107,8 +108,11 @@ public class CardController : Controller
     public async Task<IActionResult> Edit(EditCardViewModel model)
     {
         var userId = GetCurrentUserId();
-        var hasAccess = await _boardDA.UserHasAccessAsync(model.BoardId, userId);
-        if (!hasAccess) return Forbid();
+        if (!await _boardDA.UserCanWriteAsync(model.BoardId, userId))
+        {
+            TempData["ErrorMessage"] = "Vous êtes en lecture seule sur ce tableau, vous ne pouvez pas modifier les cartes.";
+            return RedirectToAction("Details", "Board", new { id = model.BoardId });
+        }
 
         if (!ModelState.IsValid)
         {
@@ -192,8 +196,8 @@ public class CardController : Controller
         var userId = GetCurrentUserId();
 
         // Membre ou Admin peut déplacer (Viewer non — UserHasAccess + role check)
-        if (!await _boardDA.UserHasAccessAsync(request.BoardId, userId))
-            return Forbid();
+        if (!await _boardDA.UserCanWriteAsync(request.BoardId, userId))
+            return Json(new { success = false, error = "Vous êtes en lecture seule." });
 
         var success = await _cardDA.MoveCardAsync(request.CardId, request.TargetColumnId, request.NewPosition);
         if (!success)

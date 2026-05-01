@@ -36,8 +36,11 @@ public class CommentController : Controller
         var userId = GetCurrentUserId();
 
         // Tous les membres (sauf Viewer) peuvent commenter
-        if (!await _boardDA.UserHasAccessAsync(boardId, userId))
-            return Forbid();
+        if (!await _boardDA.UserCanWriteAsync(boardId, userId))
+        {
+            TempData["ErrorMessage"] = "Vous êtes en lecture seule sur ce tableau, vous ne pouvez pas commenter.";
+            return RedirectToAction("Edit", "Card", new { id = cardId });
+        }
 
         if (string.IsNullOrWhiteSpace(content))
         {
