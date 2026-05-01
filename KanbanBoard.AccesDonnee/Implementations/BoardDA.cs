@@ -1,6 +1,7 @@
 ﻿using KanbanBoard.AccesDonnee.EFCore;
 using KanbanBoard.AccesDonnee.Models;
 using KanbanBoard.LibrairieMetier.Interfaces;
+using KanbanBoard.LibrairieMetier.Results;
 using KanbanBoard.LibrairieMetier.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
@@ -166,6 +167,52 @@ public class BoardDA : IBoardDA
                              && m.Role == "Admin")));
     }
 
+    public async Task<AddMemberResult> AddMemberByEmailAsync(int boardId, string email, string role)
+    {
+        var validRoles = new[] { "Admin", "Member", "Viewer" };
+        if (!validRoles.Contains(role))
+            return AddMemberResult.InvalidRole;
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+
+        var user = await _db.USERs
+            .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+
+        if (user == null)
+            return AddMemberResult.UserNotFound;
+
+        var alreadyMember = await _db.BOARD_MEMBERs
+            .AnyAsync(m => m.BoardId == boardId && m.UserId == user.Id);
+
+        var isOwner = await _db.BOARDs
+            .AnyAsync(b => b.Id == boardId && b.OwnerId == user.Id);
+
+        if (alreadyMember || isOwner)
+            return AddMemberResult.AlreadyMember;
+
+        _db.BOARD_MEMBERs.Add(new BOARD_MEMBER
+        {
+            BoardId = boardId,
+            UserId = user.Id,
+            Role = role,
+            JoinedAt = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return AddMemberResult.Success;
+    }
+
+    public async Task<bool> UserCanWriteAsync(int boardId, int userId)
+    {
+        var isOwner = await _db.BOARDs
+            .AnyAsync(b => b.Id == boardId && b.OwnerId == userId);
+        if (isOwner) return true;
+
+        return await _db.BOARD_MEMBERs
+            .AnyAsync(m => m.BoardId == boardId
+                        && m.UserId == userId
+                        && m.Role != "Viewer");
+    }
     public async Task<List<BoardMemberItemViewModel>> GetMembersAsync(int boardId)
     {
         // Récupère l'owner + les membres explicites, déduplique

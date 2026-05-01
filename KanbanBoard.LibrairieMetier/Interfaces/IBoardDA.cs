@@ -1,4 +1,5 @@
-﻿using KanbanBoard.LibrairieMetier.ViewModels;
+﻿using KanbanBoard.LibrairieMetier.Results;
+using KanbanBoard.LibrairieMetier.ViewModels;
 
 namespace KanbanBoard.LibrairieMetier.Interfaces;
 
@@ -34,4 +35,10 @@ public interface IBoardDA
 
     /// <summary>Liste les membres d'un board (pour le dropdown assignee).</summary>
     Task<List<BoardMemberItemViewModel>> GetMembersAsync(int boardId);
+
+    /// <summary>Ajoute un membre au board par son email.</summary>
+    Task<AddMemberResult> AddMemberByEmailAsync(int boardId, string email, string role);
+
+    /// <summary>Indique si l'utilisateur peut écrire (Owner ou non-Viewer).</summary>
+    Task<bool> UserCanWriteAsync(int boardId, int userId);
 }
