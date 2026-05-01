@@ -32,6 +32,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<USER> USERs { get; set; }
 
+    public virtual DbSet<CARD_READ> CARD_READs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ACTIVITY_LOG>(entity =>
@@ -277,6 +279,24 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(255);
             entity.Property(e => e.PasswordHash).HasMaxLength(60);
             entity.Property(e => e.Username).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<CARD_READ>(entity =>
+        {
+            entity.HasKey(e => new { e.UserId, e.CardId });
+            entity.Property(e => e.LastReadAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.CARD_READs)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Card)
+                .WithMany(p => p.CARD_READs)
+                .HasForeignKey(d => d.CardId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => e.CardId, "IX_CARD_READ_CardId");
         });
 
         OnModelCreatingPartial(modelBuilder);

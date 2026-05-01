@@ -35,4 +35,5 @@ public class KanbanCardViewModel
     public string? AssigneeUsername { get; set; }
     public bool IsArchived { get; set; }
     public int CommentCount { get; set; }
+    public int UnreadCount { get; set; }
 }

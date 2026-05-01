@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KanbanBoard.AccesDonnee.Models;
 
@@ -34,4 +35,7 @@ public partial class USER
     public virtual ICollection<NOTIFICATION> NOTIFICATIONActors { get; set; } = new List<NOTIFICATION>();
 
     public virtual ICollection<NOTIFICATION> NOTIFICATIONUsers { get; set; } = new List<NOTIFICATION>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<CARD_READ> CARD_READs { get; set; } = new List<CARD_READ>();
 }

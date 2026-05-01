@@ -9,10 +9,12 @@ namespace KanbanBoard.AccesDonnee.Implementations;
 public class BoardDA : IBoardDA
 {
     private readonly AppDbContext _db;
+    private readonly ICardReadDA _cardReadDA;
 
-    public BoardDA(AppDbContext db)
+    public BoardDA(AppDbContext db, ICardReadDA cardReadDA)
     {
         _db = db;
+        _cardReadDA = cardReadDA;
     }
 
     public async Task<List<BoardListItemViewModel>> GetBoardsForUserAsync(int userId)
@@ -60,32 +62,45 @@ public class BoardDA : IBoardDA
 
         // Charger colonnes + cartes
         board.Columns = await _db.BOARD_COLUMNs
-            .Where(c => c.BoardId == boardId)
-            .OrderBy(c => c.Position)
-            .Select(c => new KanbanColumnViewModel
+    .Where(c => c.BoardId == boardId)
+    .OrderBy(c => c.Position)
+    .Select(c => new KanbanColumnViewModel
+    {
+        Id = c.Id,
+        Title = c.Title,
+        Position = c.Position,
+        RowVersion = c.RowVersion,
+        Cards = c.CARDs
+            .Where(card => !card.IsArchived)
+            .OrderBy(card => card.Position)
+            .Select(card => new KanbanCardViewModel
             {
-                Id = c.Id,
-                Title = c.Title,
-                Position = c.Position,
-                RowVersion = c.RowVersion,
-                Cards = c.CARDs
-                    .Where(card => !card.IsArchived)
-                    .OrderBy(card => card.Position)
-                    .Select(card => new KanbanCardViewModel
-                    {
-                        Id = card.Id,
-                        Title = card.Title,
-                        Description = card.Description,
-                        Priority = card.Priority,
-                        Position = card.Position,
-                        DueDate = card.DueDate,
-                        AssigneeUsername = card.Assignee != null ? card.Assignee.Username : null,
-                        IsArchived = card.IsArchived,
-                        CommentCount = card.COMMENTs.Count(co => true)
-                    })
-                    .ToList()
+                Id = card.Id,
+                Title = card.Title,
+                Description = card.Description,
+                Priority = card.Priority,
+                Position = card.Position,
+                DueDate = card.DueDate,
+                AssigneeId = card.AssigneeId,
+                AssigneeUsername = card.Assignee != null ? card.Assignee.Username : null,
+                IsArchived = card.IsArchived,
+                CommentCount = card.COMMENTs.Count(co => true)
             })
-            .ToListAsync();
+            .ToList()
+    })
+    .ToListAsync();
+
+        // Récupère les non-lus pour chaque carte du board
+        var unreadCounts = await _cardReadDA.GetUnreadCountsForBoardAsync(boardId, userId);
+
+        // Applique les unread counts à chaque carte
+        foreach (var col in board.Columns)
+        {
+            foreach (var card in col.Cards)
+            {
+                card.UnreadCount = unreadCounts.GetValueOrDefault(card.Id, 0);
+            }
+        }
 
         return board;
     }

@@ -14,13 +14,15 @@ public class CardController : Controller
     private readonly ICardDA _cardDA;
     private readonly IBoardDA _boardDA;
     private readonly ICommentDA _commentDA;
+    private readonly ICardReadDA _cardReadDA;
     private readonly IHubContext<KanbanHub> _hub;
 
-    public CardController(ICardDA cardDA, IBoardDA boardDA, ICommentDA commentDA, IHubContext<KanbanHub> hub)
+    public CardController(ICardDA cardDA, IBoardDA boardDA, ICommentDA commentDA, ICardReadDA cardReadDA, IHubContext<KanbanHub> hub)
     {
         _cardDA = cardDA;
         _boardDA = boardDA;
         _commentDA = commentDA;
+        _cardReadDA = cardReadDA;
         _hub = hub;
     }
 
@@ -74,6 +76,9 @@ public class CardController : Controller
         var userId = GetCurrentUserId();
         var hasAccess = await _boardDA.UserHasAccessAsync(boardId.Value, userId);
         if (!hasAccess) return Forbid();
+
+        // Marquer la carte comme "lue" par l'utilisateur courant (pour les non-lus)
+        await _cardReadDA.MarkAsReadAsync(userId, id);
 
         var members = await _boardDA.GetMembersAsync(boardId.Value);
         var comments = await _commentDA.GetForCardAsync(id);

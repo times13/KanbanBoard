@@ -24,6 +24,7 @@ builder.Services.AddScoped<IBoardDA, BoardDA>();
 builder.Services.AddScoped<IColumnDA, ColumnDA>();
 builder.Services.AddScoped<ICardDA, CardDA>();
 builder.Services.AddScoped<ICommentDA, CommentDA>();
+builder.Services.AddScoped<ICardReadDA, CardReadDA>();
 
 // -- Authentification par cookie (maison) --
 builder.Services

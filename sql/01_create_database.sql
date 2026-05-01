@@ -19,6 +19,7 @@ GO
 -- 1. Suppression des tables existantes (ordre inverse des FK)
 --    Utile si on relance le script plusieurs fois en dev.
 -- ---------------------------------------------------------------------
+IF OBJECT_ID(N'dbo.CARD_READ',    N'U') IS NOT NULL DROP TABLE dbo.CARD_READ;
 IF OBJECT_ID(N'dbo.NOTIFICATION', N'U') IS NOT NULL DROP TABLE dbo.NOTIFICATION;
 IF OBJECT_ID(N'dbo.ACTIVITY_LOG', N'U') IS NOT NULL DROP TABLE dbo.ACTIVITY_LOG;
 IF OBJECT_ID(N'dbo.CARD_LABEL',   N'U') IS NOT NULL DROP TABLE dbo.CARD_LABEL;
@@ -314,6 +315,28 @@ GO
 
 CREATE INDEX IX_NOTIFICATION_User_IsRead
     ON dbo.NOTIFICATION(UserId, IsRead, CreatedAt DESC);
+GO
+
+-- =====================================================================
+-- 8. Table de tracking "lu" par utilisateur (commentaires non lus)
+-- =====================================================================
+
+-- ---------- CARD_READ ----------
+CREATE TABLE dbo.CARD_READ (
+    UserId     INT          NOT NULL,
+    CardId     INT          NOT NULL,
+    LastReadAt DATETIME2(0) NOT NULL DEFAULT (SYSUTCDATETIME()),
+    CONSTRAINT PK_CARD_READ PRIMARY KEY (UserId, CardId),
+    CONSTRAINT FK_CARD_READ_User
+        FOREIGN KEY (UserId) REFERENCES dbo.[USER](Id)
+        ON DELETE CASCADE,
+    CONSTRAINT FK_CARD_READ_Card
+        FOREIGN KEY (CardId) REFERENCES dbo.CARD(Id)
+        ON DELETE NO ACTION   -- évite le multi-cascade (CARD est déjà cascade par BOARD)
+);
+GO
+
+CREATE INDEX IX_CARD_READ_CardId ON dbo.CARD_READ(CardId);
 GO
 
 PRINT N'Base KanbanBoardDb créée avec succès.';

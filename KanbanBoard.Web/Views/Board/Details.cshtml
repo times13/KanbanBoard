@@ -100,9 +100,13 @@
                                     <div class="d-flex gap-2 align-items-center">
                                         @if (card.CommentCount > 0)
                                         {
-                                            <small class="text-muted" title="@card.CommentCount commentaire(s)">
-                                                💬 @card.CommentCount
-                                            </small>
+                                            <span class="comment-indicator" title="@card.CommentCount commentaire(s)@(card.UnreadCount > 0 ? $" — {card.UnreadCount} non lu(s)" : "")">
+                                                <small class="text-muted">💬 @card.CommentCount</small>
+                                                @if (card.UnreadCount > 0)
+                                                {
+                                                    <span class="unread-badge">+@card.UnreadCount</span>
+                                                }
+                                            </span>
                                         }
                                         @if (card.AssigneeUsername != null)
                                         {
@@ -300,6 +304,36 @@
             transform: rotate(3deg);
             box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
         }
+
+        .comment-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            position: relative;
+        }
+
+        .unread-badge {
+            background: #dc3545;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: bold;
+            padding: 1px 6px;
+            border-radius: 10px;
+            line-height: 1.2;
+            box-shadow: 0 1px 3px rgba(220, 53, 69, 0.4);
+            animation: pulse-red 1.5s ease-in-out infinite;
+        }
+
+        @@keyframes pulse-red {
+            0%, 100% {
+                box-shadow: 0 1px 3px rgba(220, 53, 69, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 2px 8px rgba(220, 53, 69, 0.7);
+            }
+        }
+
     </style>
 }
 
