@@ -41,4 +41,19 @@ public interface IBoardDA
 
     /// <summary>Indique si l'utilisateur peut écrire (Owner ou non-Viewer).</summary>
     Task<bool> UserCanWriteAsync(int boardId, int userId);
+
+    /// <summary>
+    /// Change le rôle d'un membre. Échoue si l'utilisateur cible est le owner.
+    /// </summary>
+    Task<ChangeRoleResult> ChangeMemberRoleAsync(int boardId, int targetUserId, string newRole);
+
+    /// <summary>
+    /// Retire un membre du board. Échoue si l'utilisateur cible est le owner.
+    /// </summary>
+    Task<RemoveMemberResult> RemoveMemberAsync(int boardId, int targetUserId);
+
+    /// <summary>
+    /// Permet à un membre de quitter le board. Échoue si l'utilisateur est le owner.
+    /// </summary>
+    Task<LeaveBoardResult> LeaveBoardAsync(int boardId, int userId);
 }

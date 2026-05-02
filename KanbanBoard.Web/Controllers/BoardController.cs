@@ -120,6 +120,125 @@ public class BoardController : Controller
         return RedirectToAction(nameof(Details), new { id = model.BoardId });
     }
 
+    // ---------- CHANGE MEMBER ROLE ----------
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangeMemberRole(int boardId, int targetUserId, string newRole)
+    {
+        var userId = GetCurrentUserId();
+
+        if (!await _boardDA.UserIsAdminAsync(boardId, userId))
+            return Forbid();
+
+        var result = await _boardDA.ChangeMemberRoleAsync(boardId, targetUserId, newRole);
+
+        switch (result)
+        {
+            case ChangeRoleResult.Success:
+                TempData["SuccessMessage"] = $"Rôle modifié en {newRole}.";
+                await _hub.Clients
+                    .Group(KanbanHub.BoardGroupName(boardId))
+                    .SendAsync("BoardChanged", new
+                    {
+                        action = "MemberRoleChanged",
+                        targetUserId = targetUserId,
+                        newRole = newRole,
+                        triggeredBy = User.Identity?.Name
+                    });
+                break;
+
+            case ChangeRoleResult.CannotChangeOwnerRole:
+                TempData["ErrorMessage"] = "Le rôle du propriétaire du tableau ne peut pas être modifié.";
+                break;
+
+            case ChangeRoleResult.MemberNotFound:
+                TempData["ErrorMessage"] = "Membre introuvable.";
+                break;
+
+            case ChangeRoleResult.InvalidRole:
+                TempData["ErrorMessage"] = "Rôle invalide.";
+                break;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = boardId });
+    }
+
+    // ---------- REMOVE MEMBER ----------
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveMember(int boardId, int targetUserId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (!await _boardDA.UserIsAdminAsync(boardId, userId))
+            return Forbid();
+
+        var result = await _boardDA.RemoveMemberAsync(boardId, targetUserId);
+
+        switch (result)
+        {
+            case RemoveMemberResult.Success:
+                TempData["SuccessMessage"] = "Membre retiré du tableau.";
+                await _hub.Clients
+                    .Group(KanbanHub.BoardGroupName(boardId))
+                    .SendAsync("BoardChanged", new
+                    {
+                        action = "MemberRemoved",
+                        targetUserId = targetUserId,
+                        triggeredBy = User.Identity?.Name
+                    });
+                break;
+
+            case RemoveMemberResult.CannotRemoveOwner:
+                TempData["ErrorMessage"] = "Le propriétaire du tableau ne peut pas être retiré.";
+                break;
+
+            case RemoveMemberResult.MemberNotFound:
+                TempData["ErrorMessage"] = "Membre introuvable.";
+                break;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = boardId });
+    }
+
+    // ---------- LEAVE BOARD ----------
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> LeaveBoard(int boardId)
+    {
+        var userId = GetCurrentUserId();
+
+        var result = await _boardDA.LeaveBoardAsync(boardId, userId);
+
+        switch (result)
+        {
+            case LeaveBoardResult.Success:
+                TempData["SuccessMessage"] = "Vous avez quitté le tableau.";
+                await _hub.Clients
+                    .Group(KanbanHub.BoardGroupName(boardId))
+                    .SendAsync("BoardChanged", new
+                    {
+                        action = "MemberLeft",
+                        targetUserId = userId,
+                        triggeredBy = User.Identity?.Name
+                    });
+                return RedirectToAction(nameof(MyBoards));
+
+            case LeaveBoardResult.OwnerCannotLeave:
+                TempData["ErrorMessage"] = "Le propriétaire ne peut pas quitter le tableau. Supprimez-le si vous ne le voulez plus.";
+                break;
+
+            case LeaveBoardResult.NotAMember:
+                TempData["ErrorMessage"] = "Vous n'êtes pas membre de ce tableau.";
+                break;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = boardId });
+    }
+
     // ---------- HELPERS ----------
 
     private int GetCurrentUserId()

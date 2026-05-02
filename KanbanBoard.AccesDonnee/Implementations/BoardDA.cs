@@ -202,6 +202,82 @@ public class BoardDA : IBoardDA
         return AddMemberResult.Success;
     }
 
+    public async Task<ChangeRoleResult> ChangeMemberRoleAsync(int boardId, int targetUserId, string newRole)
+    {
+        // Validation du rôle
+        var validRoles = new[] { "Admin", "Member", "Viewer" };
+        if (!validRoles.Contains(newRole))
+            return ChangeRoleResult.InvalidRole;
+
+        // Vérifier que la cible n'est pas le owner
+        var board = await _db.BOARDs
+            .Where(b => b.Id == boardId)
+            .Select(b => new { b.OwnerId })
+            .FirstOrDefaultAsync();
+
+        if (board != null && board.OwnerId == targetUserId)
+            return ChangeRoleResult.CannotChangeOwnerRole;
+
+        // Trouver le membre
+        var member = await _db.BOARD_MEMBERs
+            .FirstOrDefaultAsync(m => m.BoardId == boardId && m.UserId == targetUserId);
+
+        if (member == null)
+            return ChangeRoleResult.MemberNotFound;
+
+        // Update simple
+        member.Role = newRole;
+        await _db.SaveChangesAsync();
+
+        return ChangeRoleResult.Success;
+    }
+
+    public async Task<RemoveMemberResult> RemoveMemberAsync(int boardId, int targetUserId)
+    {
+        // Vérifier que la cible n'est pas le owner
+        var board = await _db.BOARDs
+            .Where(b => b.Id == boardId)
+            .Select(b => new { b.OwnerId })
+            .FirstOrDefaultAsync();
+
+        if (board != null && board.OwnerId == targetUserId)
+            return RemoveMemberResult.CannotRemoveOwner;
+
+        var member = await _db.BOARD_MEMBERs
+            .FirstOrDefaultAsync(m => m.BoardId == boardId && m.UserId == targetUserId);
+
+        if (member == null)
+            return RemoveMemberResult.MemberNotFound;
+
+        _db.BOARD_MEMBERs.Remove(member);
+        await _db.SaveChangesAsync();
+
+        return RemoveMemberResult.Success;
+    }
+
+    public async Task<LeaveBoardResult> LeaveBoardAsync(int boardId, int userId)
+    {
+        // L'owner ne peut pas quitter
+        var board = await _db.BOARDs
+            .Where(b => b.Id == boardId)
+            .Select(b => new { b.OwnerId })
+            .FirstOrDefaultAsync();
+
+        if (board != null && board.OwnerId == userId)
+            return LeaveBoardResult.OwnerCannotLeave;
+
+        var member = await _db.BOARD_MEMBERs
+            .FirstOrDefaultAsync(m => m.BoardId == boardId && m.UserId == userId);
+
+        if (member == null)
+            return LeaveBoardResult.NotAMember;
+
+        _db.BOARD_MEMBERs.Remove(member);
+        await _db.SaveChangesAsync();
+
+        return LeaveBoardResult.Success;
+    }
+
     public async Task<bool> UserCanWriteAsync(int boardId, int userId)
     {
         var isOwner = await _db.BOARDs
