@@ -27,4 +27,18 @@ public class KanbanHub : Hub
     /// Helper pour standardiser le nom des groupes.
     /// </summary>
     public static string BoardGroupName(int boardId) => $"board-{boardId}";
+
+    public static string UserGroupName(int userId) => $"user-{userId}";
+
+    public override async Task OnConnectedAsync()
+    {
+        // À la connexion, le user rejoint automatiquement son propre groupe
+        var userIdClaim = Context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, UserGroupName(userId));
+        }
+        await base.OnConnectedAsync();
+    }
+
 }

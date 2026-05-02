@@ -1,9 +1,10 @@
 using KanbanBoard.AccesDonnee.EFCore;
 using KanbanBoard.AccesDonnee.Implementations;
 using KanbanBoard.LibrairieMetier.Interfaces;
+using KanbanBoard.Web.Hubs;
+using KanbanBoard.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using KanbanBoard.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,9 @@ builder.Services.AddScoped<IColumnDA, ColumnDA>();
 builder.Services.AddScoped<ICardDA, CardDA>();
 builder.Services.AddScoped<ICommentDA, CommentDA>();
 builder.Services.AddScoped<ICardReadDA, CardReadDA>();
+builder.Services.AddScoped<INotificationDA, NotificationDA>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<IUserDA, UserDA>();
 
 // -- Authentification par cookie (maison) --
 builder.Services

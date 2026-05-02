@@ -329,4 +329,12 @@ public class BoardDA : IBoardDA
 
         return members.OrderBy(m => m.Username).ToList();
     }
+
+    public async Task<string?> GetBoardTitleAsync(int boardId)
+    {
+        return await _db.BOARDs
+            .Where(b => b.Id == boardId)
+            .Select(b => b.Title)
+            .FirstOrDefaultAsync();
+    }
 }

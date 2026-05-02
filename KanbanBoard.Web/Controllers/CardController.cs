@@ -1,10 +1,11 @@
-﻿using System.Security.Claims;
-using KanbanBoard.LibrairieMetier.Interfaces;
+﻿using KanbanBoard.LibrairieMetier.Interfaces;
 using KanbanBoard.LibrairieMetier.ViewModels;
+using KanbanBoard.Web.Hubs;
+using KanbanBoard.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using KanbanBoard.Web.Hubs;
+using System.Security.Claims;
 
 namespace KanbanBoard.Web.Controllers;
 
@@ -15,14 +16,16 @@ public class CardController : Controller
     private readonly IBoardDA _boardDA;
     private readonly ICommentDA _commentDA;
     private readonly ICardReadDA _cardReadDA;
+    private readonly NotificationService _notif;
     private readonly IHubContext<KanbanHub> _hub;
 
-    public CardController(ICardDA cardDA, IBoardDA boardDA, ICommentDA commentDA, ICardReadDA cardReadDA, IHubContext<KanbanHub> hub)
+    public CardController(ICardDA cardDA, IBoardDA boardDA, ICommentDA commentDA, ICardReadDA cardReadDA, NotificationService notif, IHubContext<KanbanHub> hub)
     {
         _cardDA = cardDA;
         _boardDA = boardDA;
         _commentDA = commentDA;
         _cardReadDA = cardReadDA;
+        _notif = notif;
         _hub = hub;
     }
 
@@ -121,6 +124,10 @@ public class CardController : Controller
             return View(model);
         }
 
+        // Récupérer l'ancien assignee pour détecter le changement
+        var oldCard = await _cardDA.GetCardAsync(model.Id);
+        var oldAssigneeId = oldCard?.AssigneeId;
+
         var success = await _cardDA.UpdateCardAsync(
             model.Id,
             model.Title,
@@ -129,6 +136,20 @@ public class CardController : Controller
             model.DueDate,
             model.AssigneeId    // assigneeId sera géré plus tard
         );
+
+        // Si l'assignee a changé et qu'il y en a un nouveau (pas null), on notifie
+        if (success && model.AssigneeId.HasValue && model.AssigneeId != oldAssigneeId
+            && model.AssigneeId.Value != userId) // ne pas se notifier soi-même
+        {
+            var boardTitle = await _boardDA.GetBoardTitleAsync(model.BoardId) ?? "(sans titre)";
+            await _notif.NotifyUserAsync(
+                userId: model.AssigneeId.Value,
+                actorId: userId,
+                type: "CardAssigned",
+                message: $"{User.Identity?.Name} vous a assigné à la carte « {model.Title} » du tableau « {boardTitle} »",
+                boardId: model.BoardId,
+                cardId: model.Id);
+        }
 
         if (!success)
         {

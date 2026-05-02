@@ -56,4 +56,8 @@ public interface IBoardDA
     /// Permet à un membre de quitter le board. Échoue si l'utilisateur est le owner.
     /// </summary>
     Task<LeaveBoardResult> LeaveBoardAsync(int boardId, int userId);
+
+    /// <summary>Retourne le titre d'un board (ou null si introuvable).</summary>
+    Task<string?> GetBoardTitleAsync(int boardId);
+
 }

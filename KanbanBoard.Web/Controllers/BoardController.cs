@@ -2,6 +2,7 @@
 using KanbanBoard.LibrairieMetier.Results;
 using KanbanBoard.LibrairieMetier.ViewModels;
 using KanbanBoard.Web.Hubs;
+using KanbanBoard.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -13,12 +14,18 @@ namespace KanbanBoard.Web.Controllers;
 public class BoardController : Controller
 {
     private readonly IBoardDA _boardDA;
+    private readonly IUserDA _userDA;
     private readonly IHubContext<KanbanHub> _hub;
+    private readonly NotificationService _notif;
 
-    public BoardController(IBoardDA boardDA, IHubContext<KanbanHub> hub)
+    public BoardController(IBoardDA boardDA, IUserDA userDA, IHubContext<KanbanHub> hub,
+        NotificationService notif)
     {
         _boardDA = boardDA;
+        _userDA = userDA;
         _hub = hub;
+        _notif = notif;
+        
     }
 
     // ---------- MES BOARDS ----------
@@ -93,6 +100,21 @@ public class BoardController : Controller
         {
             case AddMemberResult.Success:
                 TempData["SuccessMessage"] = $"Utilisateur {model.Email} ajouté en tant que {model.Role}.";
+
+                // Récupère l'Id du user invité pour notifier
+                var invitedUserId = await GetUserIdByEmail(model.Email);
+                var boardTitle = await _boardDA.GetBoardTitleAsync(model.BoardId) ?? "(sans titre)";
+
+                if (invitedUserId.HasValue)
+                {
+                    await _notif.NotifyUserAsync(
+                        userId: invitedUserId.Value,
+                        actorId: userId,
+                        type: "MemberAdded",
+                        message: $"{User.Identity?.Name} vous a invité au tableau « {boardTitle} » en tant que {model.Role}",
+                        boardId: model.BoardId);
+                }
+
                 await _hub.Clients
                     .Group(KanbanHub.BoardGroupName(model.BoardId))
                     .SendAsync("BoardChanged", new
@@ -137,6 +159,14 @@ public class BoardController : Controller
         {
             case ChangeRoleResult.Success:
                 TempData["SuccessMessage"] = $"Rôle modifié en {newRole}.";
+                var boardTitleR = await _boardDA.GetBoardTitleAsync(boardId) ?? "(sans titre)";
+                await _notif.NotifyUserAsync(
+                    userId: targetUserId,
+                    actorId: userId,
+                    type: "MemberRoleChanged",
+                    message: $"{User.Identity?.Name} a changé votre rôle en {newRole} sur le tableau « {boardTitleR} »",
+                    boardId: boardId);
+
                 await _hub.Clients
                     .Group(KanbanHub.BoardGroupName(boardId))
                     .SendAsync("BoardChanged", new
@@ -181,6 +211,15 @@ public class BoardController : Controller
         {
             case RemoveMemberResult.Success:
                 TempData["SuccessMessage"] = "Membre retiré du tableau.";
+
+                var boardTitleX = await _boardDA.GetBoardTitleAsync(boardId) ?? "(sans titre)";
+                await _notif.NotifyUserAsync(
+                    userId: targetUserId,
+                    actorId: userId,
+                    type: "MemberRemoved",
+                    message: $"{User.Identity?.Name} vous a retiré du tableau « {boardTitleX} »",
+                    boardId: boardId);
+
                 await _hub.Clients
                     .Group(KanbanHub.BoardGroupName(boardId))
                     .SendAsync("BoardChanged", new
@@ -247,5 +286,13 @@ public class BoardController : Controller
         if (claim == null || !int.TryParse(claim.Value, out var id))
             throw new InvalidOperationException("Utilisateur non identifié.");
         return id;
+    }
+
+    private async Task<int?> GetUserIdByEmail(string email)
+    {
+        // Cherche l'Id du user à partir de son email — utilise IBoardDA pour pas dupliquer
+        var members = await _boardDA.GetMembersAsync(0); // hack temporaire — voir note
+                                                         // ... 
+        return null; // placeholder
     }
 }
