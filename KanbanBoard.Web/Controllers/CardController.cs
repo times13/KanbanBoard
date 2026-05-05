@@ -16,15 +16,17 @@ public class CardController : Controller
     private readonly IBoardDA _boardDA;
     private readonly ICommentDA _commentDA;
     private readonly ICardReadDA _cardReadDA;
+    private readonly IAttachmentDA _attachmentDA;
     private readonly NotificationService _notif;
     private readonly IHubContext<KanbanHub> _hub;
 
-    public CardController(ICardDA cardDA, IBoardDA boardDA, ICommentDA commentDA, ICardReadDA cardReadDA, NotificationService notif, IHubContext<KanbanHub> hub)
+    public CardController(ICardDA cardDA, IBoardDA boardDA, ICommentDA commentDA, ICardReadDA cardReadDA, IAttachmentDA attachmentDA, NotificationService notif, IHubContext<KanbanHub> hub)
     {
         _cardDA = cardDA;
         _boardDA = boardDA;
         _commentDA = commentDA;
         _cardReadDA = cardReadDA;
+        _attachmentDA = attachmentDA;
         _notif = notif;
         _hub = hub;
     }
@@ -85,6 +87,7 @@ public class CardController : Controller
 
         var members = await _boardDA.GetMembersAsync(boardId.Value);
         var comments = await _commentDA.GetForCardAsync(id);
+        var attachments = await _attachmentDA.GetForCardAsync(id);
 
         var model = new EditCardViewModel
         {
@@ -103,6 +106,8 @@ public class CardController : Controller
         ViewData["IsAdmin"] = await _boardDA.UserIsAdminAsync(boardId.Value, userId);
         ViewData["CurrentUserId"] = userId;
         ViewData["CanWrite"] = await _boardDA.UserCanWriteAsync(boardId.Value, userId);
+        ViewData["Attachments"] = attachments;
+
         return View(model);
     }
 

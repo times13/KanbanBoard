@@ -311,7 +311,8 @@ CREATE TABLE dbo.NOTIFICATION (
         N'MemberRoleChanged',
         N'CardAssigned',
         N'CommentAdded',
-        N'CardDueSoon'
+        N'CardDueSoon',
+		N'AttachmentAdded'
     ))
 );
 GO

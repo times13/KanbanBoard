@@ -227,6 +227,12 @@
                                                 }
                                             </span>
                                         }
+                                        @if (card.AttachmentCount > 0)
+                                        {
+                                            <small class="text-muted" title="@card.AttachmentCount pièce(s) jointe(s)">
+                                                📎 @card.AttachmentCount
+                                            </small>
+                                        }
                                         @if (card.AssigneeUsername != null)
                                         {
                                             <small class="text-muted">👤 @card.AssigneeUsername</small>
@@ -799,7 +805,9 @@
                 "CardDeleted":  `🗑️ Une carte a été supprimée par ${payload.triggeredBy}`,
                 "ColumnCreated": `➕ Nouvelle colonne « ${payload.title} » par ${payload.triggeredBy}`,
                 "ColumnRenamed": `✏️ Colonne renommée en « ${payload.title} » par ${payload.triggeredBy}`,
-                "ColumnDeleted": `🗑️ Une colonne a été supprimée par ${payload.triggeredBy}`
+                "ColumnDeleted": `🗑️ Une colonne a été supprimée par ${payload.triggeredBy}`,
+                "AttachmentAdded":   `📎 Pièce jointe « ${payload.fileName} » ajoutée par ${payload.triggeredBy}`,
+                "AttachmentDeleted": `📎 Pièce jointe supprimée par ${payload.triggeredBy}`
             };
 
             const msg = messages[payload.action] || `Mise à jour : ${payload.action}`;

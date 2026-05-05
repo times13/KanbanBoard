@@ -36,4 +36,5 @@ public class KanbanCardViewModel
     public bool IsArchived { get; set; }
     public int CommentCount { get; set; }
     public int UnreadCount { get; set; }
+    public int AttachmentCount { get; set; }
 }

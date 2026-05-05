@@ -85,7 +85,8 @@ public class BoardDA : IBoardDA
                 AssigneeId = card.AssigneeId,
                 AssigneeUsername = card.Assignee != null ? card.Assignee.Username : null,
                 IsArchived = card.IsArchived,
-                CommentCount = card.COMMENTs.Count(co => true)
+                CommentCount = card.COMMENTs.Count(co => true),
+                AttachmentCount = card.ATTACHMENTs.Count(at => true)
             })
             .ToList()
     })

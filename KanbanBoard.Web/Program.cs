@@ -29,6 +29,7 @@ builder.Services.AddScoped<ICardReadDA, CardReadDA>();
 builder.Services.AddScoped<INotificationDA, NotificationDA>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IUserDA, UserDA>();
+builder.Services.AddScoped<IAttachmentDA, AttachmentDA>();
 
 // -- Authentification par cookie (maison) --
 builder.Services
