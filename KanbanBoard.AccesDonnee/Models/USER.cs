@@ -38,4 +38,6 @@ public partial class USER
 
     [InverseProperty("User")]
     public virtual ICollection<CARD_READ> CARD_READs { get; set; } = new List<CARD_READ>();
+
+
 }

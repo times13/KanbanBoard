@@ -63,4 +63,9 @@ public interface IBoardDA
     /// <summary>Retourne l'OwnerId d'un board, null si introuvable.</summary>
     Task<int?> GetBoardOwnerIdAsync(int boardId);
 
+    /// <summary>
+    /// Retourne la liste des UserId qui sont Admin du board (incluant l'owner).
+    /// </summary>
+    Task<List<int>> GetAdminUserIdsAsync(int boardId);
+
 }

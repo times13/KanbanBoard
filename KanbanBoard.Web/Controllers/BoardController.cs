@@ -120,7 +120,7 @@ public class BoardController : Controller
                 TempData["SuccessMessage"] = $"Utilisateur {model.Email} ajouté en tant que {model.Role}.";
 
                 // Récupère l'Id du user invité pour notifier
-                var invitedUserId = await GetUserIdByEmail(model.Email);
+                var invitedUserId = await _userDA.GetUserIdByEmailAsync(model.Email);
                 var boardTitle = await _boardDA.GetBoardTitleAsync(model.BoardId) ?? "(sans titre)";
 
                 if (invitedUserId.HasValue)
@@ -271,6 +271,20 @@ public class BoardController : Controller
         return RedirectToAction(nameof(Details), new { id = boardId });
     }
 
+    // ---------- SEARCH USERS (autocomplete) ----------
+
+    [HttpGet]
+    public async Task<IActionResult> SearchUsers(int boardId, string q)
+    {
+        var userId = GetCurrentUserId();
+
+        if (!await _boardDA.UserIsAdminAsync(boardId, userId))
+            return Forbid();
+
+        var results = await _userDA.SearchAvailableUsersAsync(boardId, q ?? "");
+        return Json(results);
+    }
+
     // ---------- LEAVE BOARD ----------
 
     [HttpPost]
@@ -285,6 +299,22 @@ public class BoardController : Controller
         {
             case LeaveBoardResult.Success:
                 TempData["SuccessMessage"] = "Vous avez quitté le tableau.";
+
+                // Notifier tous les Admins (y compris l'owner)
+                var boardTitleL = await _boardDA.GetBoardTitleAsync(boardId) ?? "(sans titre)";
+                var adminIds = await _boardDA.GetAdminUserIdsAsync(boardId);
+
+                foreach (var adminId in adminIds)
+                {
+                    await _notif.NotifyUserAsync(
+                        userId: adminId,
+                        actorId: userId,
+                        type: "MemberRemoved",  // on réutilise le type existant
+                        message: $"{User.Identity?.Name} a quitté le tableau « {boardTitleL} »",
+                        boardId: boardId);
+                }
+
+                // Broadcast public pour les autres membres connectés sur le board
                 await _hub.Clients
                     .Group(KanbanHub.BoardGroupName(boardId))
                     .SendAsync("BoardChanged", new
@@ -293,6 +323,7 @@ public class BoardController : Controller
                         targetUserId = userId,
                         triggeredBy = User.Identity?.Name
                     });
+
                 return RedirectToAction(nameof(MyBoards));
 
             case LeaveBoardResult.OwnerCannotLeave:
@@ -315,13 +346,5 @@ public class BoardController : Controller
         if (claim == null || !int.TryParse(claim.Value, out var id))
             throw new InvalidOperationException("Utilisateur non identifié.");
         return id;
-    }
-
-    private async Task<int?> GetUserIdByEmail(string email)
-    {
-        // Cherche l'Id du user à partir de son email — utilise IBoardDA pour pas dupliquer
-        var members = await _boardDA.GetMembersAsync(0); // hack temporaire — voir note
-                                                         // ... 
-        return null; // placeholder
     }
 }

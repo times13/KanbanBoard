@@ -368,4 +368,26 @@ public class BoardDA : IBoardDA
             .Select(b => (int?)b.OwnerId)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<List<int>> GetAdminUserIdsAsync(int boardId)
+    {
+        // Récupère le owner + tous les membres avec rôle Admin
+        var board = await _db.BOARDs
+            .Where(b => b.Id == boardId)
+            .Select(b => new { b.OwnerId })
+            .FirstOrDefaultAsync();
+
+        if (board == null) return new List<int>();
+
+        var adminMemberIds = await _db.BOARD_MEMBERs
+            .Where(m => m.BoardId == boardId && m.Role == "Admin")
+            .Select(m => m.UserId)
+            .ToListAsync();
+
+        // L'owner est toujours considéré Admin, on l'inclut
+        if (!adminMemberIds.Contains(board.OwnerId))
+            adminMemberIds.Insert(0, board.OwnerId);
+
+        return adminMemberIds;
+    }
 }

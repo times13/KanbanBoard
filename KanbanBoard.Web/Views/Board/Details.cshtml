@@ -385,14 +385,17 @@
     </div>
 }
 
-@* ============ Modal Inviter un membre ============ *@
+@* ============ Modal Inviter un membre (avec autocomplete) ============ *@
 @if (ViewData["IsAdmin"] is true)
 {
     <div class="modal fade" id="inviteMemberModal" tabindex="-1">
         <div class="modal-dialog">
-            <form asp-controller="Board" asp-action="AddMember" method="post">
+            <form asp-controller="Board" asp-action="AddMember" method="post" id="inviteForm">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="BoardId" value="@Model.BoardId" />
+
+                @* Email caché qui sera rempli quand on clique sur une suggestion *@
+                <input type="hidden" name="Email" id="inviteSelectedEmail" />
 
                 <div class="modal-content">
                     <div class="modal-header">
@@ -400,13 +403,29 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="inviteEmail" class="form-label">Email du membre</label>
-                            <input type="email" name="Email" id="inviteEmail"
-                                   class="form-control" required
-                                   placeholder="exemple@domaine.com" />
+
+                        <div class="mb-3 position-relative">
+                            <label for="inviteSearch" class="form-label">Rechercher un utilisateur</label>
+                            <input type="text" id="inviteSearch"
+                                   class="form-control"
+                                   placeholder="Tapez un nom ou un email..."
+                                   autocomplete="off" />
+
+                            @* Liste de suggestions, cachée par défaut *@
+                            <div id="inviteSuggestions"
+                                 class="list-group position-absolute w-100 shadow"
+                                 style="z-index: 1056; display: none; max-height: 240px; overflow-y: auto;">
+                            </div>
+
                             <div class="form-text">L'utilisateur doit déjà avoir un compte.</div>
                         </div>
+
+                        @* Affichage du membre sélectionné *@
+                        <div id="inviteSelectedDisplay" class="alert alert-success" style="display: none;">
+                            ✅ <strong>Sélectionné :</strong> <span id="inviteSelectedName"></span>
+                            <button type="button" class="btn-close float-end" id="inviteClearBtn"></button>
+                        </div>
+
                         <div class="mb-3">
                             <label for="inviteRole" class="form-label">Rôle</label>
                             <select name="Role" id="inviteRole" class="form-select" required>
@@ -415,10 +434,13 @@
                                 <option value="Viewer">👁️ Viewer (lecture seule)</option>
                             </select>
                         </div>
+
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" class="btn btn-primary">Inviter</button>
+                        <button type="submit" class="btn btn-primary" id="inviteSubmitBtn" disabled>
+                            Inviter
+                        </button>
                     </div>
                 </div>
             </form>
@@ -654,6 +676,119 @@
                 });
             });
 
+                    // ============ Autocomplete invitation ============
+        (function () {
+            const searchInput = document.getElementById('inviteSearch');
+            const suggestionsBox = document.getElementById('inviteSuggestions');
+            const selectedEmail = document.getElementById('inviteSelectedEmail');
+            const selectedDisplay = document.getElementById('inviteSelectedDisplay');
+            const selectedName = document.getElementById('inviteSelectedName');
+            const clearBtn = document.getElementById('inviteClearBtn');
+            const submitBtn = document.getElementById('inviteSubmitBtn');
+
+            if (!searchInput) return; // pas Admin → pas de modal
+
+            let debounceTimer = null;
+            const boardIdForInvite = @Model.BoardId;
+
+            // Quand on tape dans le champ
+            searchInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                const query = this.value.trim();
+
+                if (query.length === 0) {
+                    suggestionsBox.style.display = 'none';
+                    return;
+                }
+
+                debounceTimer = setTimeout(() => fetchSuggestions(query), 300);
+            });
+
+            async function fetchSuggestions(query) {
+                try {
+                    const url = `/Board/SearchUsers?boardId=${boardIdForInvite}&q=${encodeURIComponent(query)}`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        suggestionsBox.style.display = 'none';
+                        return;
+                    }
+                    const users = await response.json();
+                    renderSuggestions(users);
+                } catch (err) {
+                    console.error('Erreur recherche utilisateurs:', err);
+                    suggestionsBox.style.display = 'none';
+                }
+            }
+
+            function renderSuggestions(users) {
+                if (!users || users.length === 0) {
+                    suggestionsBox.innerHTML = '<div class="list-group-item text-muted small">Aucun utilisateur disponible</div>';
+                    suggestionsBox.style.display = 'block';
+                    return;
+                }
+
+                suggestionsBox.innerHTML = users.map(u => `
+                    <button type="button"
+                            class="list-group-item list-group-item-action suggestion-item"
+                            data-email="${u.email}"
+                            data-username="${u.username}">
+                        <strong>👤 ${escapeHtml(u.username)}</strong>
+                        <br/>
+                        <small class="text-muted">${escapeHtml(u.email)}</small>
+                    </button>
+                `).join('');
+
+                suggestionsBox.style.display = 'block';
+
+                // Event sur chaque suggestion
+                suggestionsBox.querySelectorAll('.suggestion-item').forEach(item => {
+                    item.addEventListener('click', function () {
+                        const email = this.dataset.email;
+                        const username = this.dataset.username;
+                        selectUser(email, username);
+                    });
+                });
+            }
+
+            function selectUser(email, username) {
+                selectedEmail.value = email;
+                selectedName.textContent = `${username} (${email})`;
+                selectedDisplay.style.display = 'block';
+                searchInput.style.display = 'none';
+                suggestionsBox.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+
+            function clearSelection() {
+                selectedEmail.value = '';
+                selectedDisplay.style.display = 'none';
+                searchInput.style.display = 'block';
+                searchInput.value = '';
+                searchInput.focus();
+                submitBtn.disabled = true;
+            }
+
+            clearBtn.addEventListener('click', clearSelection);
+
+            // Réinitialiser le modal à chaque ouverture
+            const inviteModal = document.getElementById('inviteMemberModal');
+            if (inviteModal) {
+                inviteModal.addEventListener('show.bs.modal', clearSelection);
+            }
+
+            // Fermer les suggestions au clic en dehors
+            document.addEventListener('click', function (e) {
+                if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                    suggestionsBox.style.display = 'none';
+                }
+            });
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        })();
         });
 
         // ============ Helper : toast notification ============
