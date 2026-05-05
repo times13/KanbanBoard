@@ -66,10 +66,28 @@ public class BoardController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var userId = GetCurrentUserId();
-        var board = await _boardDA.GetBoardDetailsAsync(id, userId);
+        var hasAccess = await _boardDA.UserHasAccessAsync(id, userId);
+        if (!hasAccess)
+        {
+            TempData["ErrorMessage"] = "Vous n'avez plus accès à ce tableau (vous en avez été retiré ou il n'existe plus).";
+            return RedirectToAction(nameof(MyBoards));
+        }
 
+        var board = await _boardDA.GetBoardDetailsAsync(id, userId);
         if (board == null)
-            return NotFound();   // soit le board n'existe pas, soit l'utilisateur n'y a pas accès
+        {
+            TempData["ErrorMessage"] = "Ce tableau n'existe plus.";
+            return RedirectToAction(nameof(MyBoards));
+        }
+
+        // Charger les membres et l'ownerId
+        var members = await _boardDA.GetMembersAsync(id);
+        var ownerId = await _boardDA.GetBoardOwnerIdAsync(id);
+
+        ViewData["Members"] = members;
+        ViewData["OwnerId"] = ownerId;
+        ViewData["IsAdmin"] = await _boardDA.UserIsAdminAsync(id, userId);
+        ViewData["CurrentUserId"] = userId;
 
         return View(board);
     }
@@ -220,6 +238,17 @@ public class BoardController : Controller
                     message: $"{User.Identity?.Name} vous a retiré du tableau « {boardTitleX} »",
                     boardId: boardId);
 
+                // ⭐ Broadcast PERSONNEL au membre retiré pour le forcer à quitter la page
+                await _hub.Clients
+                    .Group(KanbanHub.UserGroupName(targetUserId))
+                    .SendAsync("AccessRevoked", new
+                    {
+                        boardId = boardId,
+                        reason = "removed",
+                        message = $"Vous avez été retiré du tableau « {boardTitleX} »"
+                    });
+
+                // Broadcast public à tous les membres pour rafraîchir leur vue
                 await _hub.Clients
                     .Group(KanbanHub.BoardGroupName(boardId))
                     .SendAsync("BoardChanged", new

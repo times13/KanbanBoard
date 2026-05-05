@@ -305,11 +305,14 @@ CREATE TABLE dbo.NOTIFICATION (
         FOREIGN KEY (BoardId) REFERENCES dbo.BOARD(Id)
         ON DELETE NO ACTION,
     CONSTRAINT CK_NOTIFICATION_Type
-        CHECK ([Type] IN (
-            N'CardAssigned', N'CardUnassigned', N'Commented',
-            N'Mentioned', N'CardMoved',
-            N'DueSoon', N'DueToday', N'Overdue', N'MemberAdded'
-        ))
+    CHECK ([Type] IN (
+        N'MemberAdded',
+        N'MemberRemoved',
+        N'MemberRoleChanged',
+        N'CardAssigned',
+        N'CommentAdded',
+        N'CardDueSoon'
+    ))
 );
 GO
 

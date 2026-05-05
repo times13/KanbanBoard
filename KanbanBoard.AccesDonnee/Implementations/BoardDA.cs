@@ -234,7 +234,6 @@ public class BoardDA : IBoardDA
 
     public async Task<RemoveMemberResult> RemoveMemberAsync(int boardId, int targetUserId)
     {
-        // Vérifier que la cible n'est pas le owner
         var board = await _db.BOARDs
             .Where(b => b.Id == boardId)
             .Select(b => new { b.OwnerId })
@@ -249,15 +248,27 @@ public class BoardDA : IBoardDA
         if (member == null)
             return RemoveMemberResult.MemberNotFound;
 
-        _db.BOARD_MEMBERs.Remove(member);
-        await _db.SaveChangesAsync();
+        // Désassigner toutes les cartes du board où targetUserId est l'assignee
+        var assignedCards = await _db.CARDs
+            .Where(c => c.AssigneeId == targetUserId
+                     && c.Column.BoardId == boardId)
+            .ToListAsync();
 
+        foreach (var card in assignedCards)
+        {
+            card.AssigneeId = null;
+            card.UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Retirer le membre
+        _db.BOARD_MEMBERs.Remove(member);
+
+        await _db.SaveChangesAsync();
         return RemoveMemberResult.Success;
     }
 
     public async Task<LeaveBoardResult> LeaveBoardAsync(int boardId, int userId)
     {
-        // L'owner ne peut pas quitter
         var board = await _db.BOARDs
             .Where(b => b.Id == boardId)
             .Select(b => new { b.OwnerId })
@@ -271,6 +282,18 @@ public class BoardDA : IBoardDA
 
         if (member == null)
             return LeaveBoardResult.NotAMember;
+
+        // Désassigner toutes les cartes du board où le user partant est l'assignee
+        var assignedCards = await _db.CARDs
+            .Where(c => c.AssigneeId == userId
+                     && c.Column.BoardId == boardId)
+            .ToListAsync();
+
+        foreach (var card in assignedCards)
+        {
+            card.AssigneeId = null;
+            card.UpdatedAt = DateTime.UtcNow;
+        }
 
         _db.BOARD_MEMBERs.Remove(member);
         await _db.SaveChangesAsync();
@@ -335,6 +358,14 @@ public class BoardDA : IBoardDA
         return await _db.BOARDs
             .Where(b => b.Id == boardId)
             .Select(b => b.Title)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<int?> GetBoardOwnerIdAsync(int boardId)
+    {
+        return await _db.BOARDs
+            .Where(b => b.Id == boardId)
+            .Select(b => (int?)b.OwnerId)
             .FirstOrDefaultAsync();
     }
 }

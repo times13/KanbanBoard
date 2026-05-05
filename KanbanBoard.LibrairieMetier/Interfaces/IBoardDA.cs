@@ -60,4 +60,7 @@ public interface IBoardDA
     /// <summary>Retourne le titre d'un board (ou null si introuvable).</summary>
     Task<string?> GetBoardTitleAsync(int boardId);
 
+    /// <summary>Retourne l'OwnerId d'un board, null si introuvable.</summary>
+    Task<int?> GetBoardOwnerIdAsync(int boardId);
+
 }

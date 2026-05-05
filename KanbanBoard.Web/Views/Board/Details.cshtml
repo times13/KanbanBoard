@@ -35,6 +35,125 @@
     </div>
 }
 
+@{
+    var members = ViewData["Members"] as List<KanbanBoard.LibrairieMetier.ViewModels.BoardMemberItemViewModel> ?? new();
+    var ownerId = ViewData["OwnerId"] as int?;
+    var isAdmin = ViewData["IsAdmin"] is true;
+    var currentUserId = ViewData["CurrentUserId"] as int? ?? 0;
+}
+
+@* ============ Bandeau membres ============ *@
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 bg-light rounded">
+    <span class="me-2"><strong>👥 Membres</strong></span>
+
+    @* Owner d'abord *@
+    @{
+        var owner = members.FirstOrDefault(m => m.UserId == ownerId);
+    }
+    @if (owner != null)
+    {
+        <span class="badge bg-warning text-dark"
+              title="Propriétaire du tableau (immuable)">
+            ⭐ @owner.Username (Owner)
+        </span>
+    }
+
+    @* Autres membres *@
+    @foreach (var member in members.Where(m => m.UserId != ownerId).OrderBy(m => m.Username))
+    {
+        var roleColor = member.Role switch
+        {
+            "Admin" => "bg-primary",
+            "Viewer" => "bg-secondary",
+            _ => "bg-info text-dark"
+        };
+
+        <div class="dropdown">
+            <span class="badge @roleColor d-inline-flex align-items-center">
+                @member.Username (@member.Role)
+                @if (isAdmin)
+                {
+                    <button type="button"
+                            class="btn btn-sm p-0 ms-2 text-white"
+                            data-bs-toggle="dropdown"
+                            style="background: transparent; border: none; line-height: 1;"
+                            title="Actions">
+                        ⋮
+                    </button>
+                    <ul class="dropdown-menu shadow">
+                        <li class="dropdown-header small">Changer le rôle</li>
+                        @if (member.Role != "Admin")
+                        {
+                            <li>
+                                <form asp-controller="Board" asp-action="ChangeMemberRole" method="post" class="m-0">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="boardId" value="@Model.BoardId" />
+                                    <input type="hidden" name="targetUserId" value="@member.UserId" />
+                                    <input type="hidden" name="newRole" value="Admin" />
+                                    <button type="submit" class="dropdown-item small">⬆️ Promouvoir Admin</button>
+                                </form>
+                            </li>
+                        }
+                        @if (member.Role != "Member")
+                        {
+                            <li>
+                                <form asp-controller="Board" asp-action="ChangeMemberRole" method="post" class="m-0">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="boardId" value="@Model.BoardId" />
+                                    <input type="hidden" name="targetUserId" value="@member.UserId" />
+                                    <input type="hidden" name="newRole" value="Member" />
+                                    <button type="submit" class="dropdown-item small">📝 Définir Member</button>
+                                </form>
+                            </li>
+                        }
+                        @if (member.Role != "Viewer")
+                        {
+                            <li>
+                                <form asp-controller="Board" asp-action="ChangeMemberRole" method="post" class="m-0">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="boardId" value="@Model.BoardId" />
+                                    <input type="hidden" name="targetUserId" value="@member.UserId" />
+                                    <input type="hidden" name="newRole" value="Viewer" />
+                                    <button type="submit" class="dropdown-item small">👁️ Définir Viewer</button>
+                                </form>
+                            </li>
+                         }
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <form asp-controller="Board" asp-action="RemoveMember" method="post" class="m-0"
+                                  onsubmit="return confirm('Retirer @member.Username du tableau ?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="boardId" value="@Model.BoardId" />
+                                <input type="hidden" name="targetUserId" value="@member.UserId" />
+                                <button type="submit" class="dropdown-item small text-danger">🗑️ Retirer du tableau</button>
+                            </form>
+                        </li>
+                    </ul>
+                }
+            </span>
+        </div>
+    }
+
+    <div class="ms-auto d-flex gap-2">
+        @if (isAdmin)
+        {
+            <button type="button" class="btn btn-sm btn-success"
+                    data-bs-toggle="modal" data-bs-target="#inviteMemberModal">
+                ➕ Inviter
+            </button>
+        }
+        @if (currentUserId != ownerId && members.Any(m => m.UserId == currentUserId))
+        {
+            <form asp-controller="Board" asp-action="LeaveBoard" method="post"
+                  onsubmit="return confirm('Vous voulez vraiment quitter ce tableau ?');"
+                  class="m-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="boardId" value="@Model.BoardId" />
+                <button type="submit" class="btn btn-sm btn-outline-danger">🚪 Quitter</button>
+            </form>
+        }
+    </div>
+</div>
 <div class="kanban-board d-flex gap-3 overflow-auto pb-3" style="min-height: 70vh;">
     @foreach (var col in Model.Columns)
     {
@@ -266,6 +385,47 @@
     </div>
 }
 
+@* ============ Modal Inviter un membre ============ *@
+@if (ViewData["IsAdmin"] is true)
+{
+    <div class="modal fade" id="inviteMemberModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form asp-controller="Board" asp-action="AddMember" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="BoardId" value="@Model.BoardId" />
+
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">➕ Inviter un membre</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="inviteEmail" class="form-label">Email du membre</label>
+                            <input type="email" name="Email" id="inviteEmail"
+                                   class="form-control" required
+                                   placeholder="exemple@domaine.com" />
+                            <div class="form-text">L'utilisateur doit déjà avoir un compte.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="inviteRole" class="form-label">Rôle</label>
+                            <select name="Role" id="inviteRole" class="form-select" required>
+                                <option value="Member" selected>📝 Member (peut modifier)</option>
+                                <option value="Admin">👑 Admin (peut tout faire)</option>
+                                <option value="Viewer">👁️ Viewer (lecture seule)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Inviter</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
 @section Styles {
     <style>
         .kanban-board {
@@ -373,6 +533,14 @@
                 // (version simple — Jour 3 on remplacera par une mise à jour DOM ciblée)
                 setTimeout(() => location.reload(), 1500);
             });
+
+                    // ============ Réception SignalR : on a été retiré du board ============
+        connection.on("AccessRevoked", function (payload) {
+            if (payload.boardId === boardId) {
+                alert(payload.message || "Vous n'avez plus accès à ce tableau.");
+                window.location.href = '/Board/MyBoards';
+            }
+        });
 
             // Démarrer la connexion puis rejoindre le groupe du board
             connection.start()
