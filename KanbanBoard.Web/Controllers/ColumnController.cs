@@ -1,9 +1,11 @@
-﻿using System.Security.Claims;
+﻿using KanbanBoard.LibrairieMetier.Constants;
 using KanbanBoard.LibrairieMetier.Interfaces;
 using KanbanBoard.Web.Hubs;
+using KanbanBoard.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
 
 namespace KanbanBoard.Web.Controllers;
 
@@ -12,12 +14,14 @@ public class ColumnController : Controller
 {
     private readonly IColumnDA _columnDA;
     private readonly IBoardDA _boardDA;
+    private readonly ActivityLogService _activityLog;
     private readonly IHubContext<KanbanHub> _hub;
 
-    public ColumnController(IColumnDA columnDA, IBoardDA boardDA, IHubContext<KanbanHub> hub)
+    public ColumnController(IColumnDA columnDA, IBoardDA boardDA, ActivityLogService activityLog, IHubContext<KanbanHub> hub)
     {
         _columnDA = columnDA;
         _boardDA = boardDA;
+        _activityLog = activityLog;
         _hub = hub;
     }
 
@@ -57,6 +61,14 @@ public class ColumnController : Controller
             });
 
         TempData["SuccessMessage"] = $"Colonne « {title.Trim()} » ajoutée.";
+
+        await _activityLog.LogAsync(
+            boardId: boardId,
+            userId: userId,
+            entityType: ActivityEntityType.Column,
+            entityId: newColumnId,
+            action: ActivityAction.ColumnCreated,
+            details: $"\"{title}\"");
         return RedirectToAction("Details", "Board", new { id = boardId });
     }
 
@@ -79,6 +91,9 @@ public class ColumnController : Controller
             return RedirectToAction("Details", "Board", new { id = boardId });
         }
 
+        // AVANT le rename : récupérer l'ancien titre
+        var oldTitle = await _columnDA.GetColumnTitleAsync(id) ?? "?";
+
         var success = await _columnDA.RenameColumnAsync(id, newTitle);
 
         if (success)
@@ -100,6 +115,13 @@ public class ColumnController : Controller
             TempData["ErrorMessage"] = "Colonne introuvable.";
         }
 
+        await _activityLog.LogAsync(
+            boardId: boardId.Value, // le BoardId récupéré au début
+            userId: userId,
+            entityType: ActivityEntityType.Column,
+            entityId: id,
+            action: ActivityAction.ColumnRenamed,
+            details: $"\"{oldTitle}\" en \"{newTitle}\"");
         return RedirectToAction("Details", "Board", new { id = boardId });
     }
 
@@ -115,6 +137,8 @@ public class ColumnController : Controller
         var userId = GetCurrentUserId();
         if (!await _boardDA.UserIsAdminAsync(boardId.Value, userId))
             return Forbid();
+        // AVANT suppression : récupérer le titre + nombre de cartes
+        var oldTitle = await _columnDA.GetColumnTitleAsync(id) ?? "?";
 
         var success = await _columnDA.DeleteColumnAsync(id);
 
@@ -130,6 +154,13 @@ public class ColumnController : Controller
                 });
 
             TempData["SuccessMessage"] = "Colonne supprimée.";
+            await _activityLog.LogAsync(
+                boardId: boardId.Value,
+                userId: userId,
+                entityType: ActivityEntityType.Column,
+                entityId: id,
+                action: ActivityAction.ColumnDeleted,
+                details: $"\"{oldTitle}\"");
         }
         else
         {

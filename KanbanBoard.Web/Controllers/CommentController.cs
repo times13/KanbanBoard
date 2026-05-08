@@ -1,9 +1,11 @@
-﻿using System.Security.Claims;
+﻿using KanbanBoard.LibrairieMetier.Constants;
 using KanbanBoard.LibrairieMetier.Interfaces;
 using KanbanBoard.Web.Hubs;
+using KanbanBoard.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
 
 namespace KanbanBoard.Web.Controllers;
 
@@ -13,17 +15,20 @@ public class CommentController : Controller
     private readonly ICommentDA _commentDA;
     private readonly ICardDA _cardDA;
     private readonly IBoardDA _boardDA;
+    private readonly ActivityLogService _activityLog;
     private readonly IHubContext<KanbanHub> _hub;
 
     public CommentController(
         ICommentDA commentDA,
         ICardDA cardDA,
         IBoardDA boardDA,
+        ActivityLogService activityLog,
         IHubContext<KanbanHub> hub)
     {
         _commentDA = commentDA;
         _cardDA = cardDA;
         _boardDA = boardDA;
+        _activityLog = activityLog;
         _hub = hub;
     }
 
@@ -54,6 +59,9 @@ public class CommentController : Controller
             return RedirectToAction("Edit", "Card", new { id = cardId });
         }
 
+        var card = await _cardDA.GetCardAsync(cardId);
+        var cardTitle = card?.Title ?? "?";
+
         await _commentDA.AddCommentAsync(cardId, userId, content);
 
         await _hub.Clients
@@ -66,6 +74,13 @@ public class CommentController : Controller
             });
 
         TempData["SuccessMessage"] = "Commentaire ajouté.";
+        await _activityLog.LogAsync(
+            boardId: boardId,
+            userId: userId,
+            entityType: ActivityEntityType.Comment,
+            entityId: cardId, // on log l'Id de la carte (plus utile pour retrouver)
+            action: ActivityAction.CommentAdded,
+            details: $"sur \"{cardTitle}\"");
         return RedirectToAction("Edit", "Card", new { id = cardId });
     }
 
@@ -90,6 +105,10 @@ public class CommentController : Controller
         if (!isAuthor && !isAdmin)
             return Forbid();
 
+        // AVANT delete, récupérer le commentaire et la carte
+        var card = comment != null ? await _cardDA.GetCardAsync(comment.CardId) : null;
+        var cardTitle = card?.Title ?? "?";
+
         await _commentDA.DeleteCommentAsync(id);
 
         await _hub.Clients
@@ -97,12 +116,19 @@ public class CommentController : Controller
             .SendAsync("BoardChanged", new
             {
                 action = "CommentDeleted",
-                cardId = comment.CardId,
+                cardId = comment?.CardId,
                 triggeredBy = User.Identity?.Name
             });
 
         TempData["SuccessMessage"] = "Commentaire supprimé.";
-        return RedirectToAction("Edit", "Card", new { id = comment.CardId });
+        await _activityLog.LogAsync(
+            boardId: boardId.Value,
+            userId: userId,
+            entityType: ActivityEntityType.Comment,
+            entityId: comment?.CardId,
+            action: ActivityAction.CommentDeleted,
+            details: $"sur \"{cardTitle}\"");
+        return RedirectToAction("Edit", "Card", new { id = comment?.CardId });
     }
 
     // ---------- HELPER ----------

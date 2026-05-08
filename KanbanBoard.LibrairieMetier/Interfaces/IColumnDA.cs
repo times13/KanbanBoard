@@ -13,4 +13,7 @@ public interface IColumnDA
 
     /// <summary>Compte les cartes non-archivées d'une colonne (pour confirmation suppression).</summary>
     Task<int> CountCardsAsync(int columnId);
+
+    /// <summary>Retourne le titre d'une colonne ou null si introuvable.</summary>
+    Task<string?> GetColumnTitleAsync(int columnId);
 }

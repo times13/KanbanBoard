@@ -242,13 +242,14 @@ GO
 
 -- ---------- ACTIVITY_LOG ----------
 CREATE TABLE dbo.ACTIVITY_LOG (
-    Id         INT          IDENTITY(1,1) NOT NULL,
-    BoardId    INT          NOT NULL,
-    UserId     INT          NOT NULL,
-    EntityType NVARCHAR(20) NOT NULL,
-    EntityId   INT          NULL,
-    Action     NVARCHAR(40) NOT NULL,
-    OccurredAt DATETIME2(0) NOT NULL DEFAULT (SYSUTCDATETIME()),
+    Id         INT           IDENTITY(1,1) NOT NULL,
+    BoardId    INT           NOT NULL,
+    UserId     INT           NOT NULL,
+    EntityType NVARCHAR(20)  NOT NULL,
+    EntityId   INT           NULL,
+    Action     NVARCHAR(40)  NOT NULL,
+	Details    NVARCHAR(500) NULL,
+    OccurredAt DATETIME2(0)  NOT NULL DEFAULT (SYSUTCDATETIME()),
     CONSTRAINT PK_ACTIVITY_LOG PRIMARY KEY (Id),
     CONSTRAINT FK_ACTIVITY_LOG_Board
         FOREIGN KEY (BoardId) REFERENCES dbo.BOARD(Id)

@@ -17,6 +17,8 @@ public partial class ACTIVITY_LOG
 
     public string Action { get; set; } = null!;
 
+    public string? Details { get; set; }
+
     public DateTime OccurredAt { get; set; }
 
     public virtual BOARD Board { get; set; } = null!;

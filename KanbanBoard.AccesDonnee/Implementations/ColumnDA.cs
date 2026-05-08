@@ -66,4 +66,12 @@ public class ColumnDA : IColumnDA
         return await _db.CARDs
             .CountAsync(c => c.ColumnId == columnId && !c.IsArchived);
     }
+
+    public async Task<string?> GetColumnTitleAsync(int columnId)
+    {
+        return await _db.BOARD_COLUMNs
+            .Where(c => c.Id == columnId)
+            .Select(c => c.Title)
+            .FirstOrDefaultAsync();
+    }
 }

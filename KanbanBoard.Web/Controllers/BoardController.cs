@@ -1,4 +1,5 @@
-﻿using KanbanBoard.LibrairieMetier.Interfaces;
+﻿using KanbanBoard.LibrairieMetier.Constants;
+using KanbanBoard.LibrairieMetier.Interfaces;
 using KanbanBoard.LibrairieMetier.Results;
 using KanbanBoard.LibrairieMetier.ViewModels;
 using KanbanBoard.Web.Hubs;
@@ -17,15 +18,16 @@ public class BoardController : Controller
     private readonly IUserDA _userDA;
     private readonly IHubContext<KanbanHub> _hub;
     private readonly NotificationService _notif;
+    private readonly ActivityLogService _activityLog;
 
     public BoardController(IBoardDA boardDA, IUserDA userDA, IHubContext<KanbanHub> hub,
-        NotificationService notif)
+        NotificationService notif, ActivityLogService activityLog)
     {
         _boardDA = boardDA;
         _userDA = userDA;
         _hub = hub;
         _notif = notif;
-        
+        _activityLog = activityLog;
     }
 
     // ---------- MES BOARDS ----------
@@ -55,6 +57,14 @@ public class BoardController : Controller
 
         var userId = GetCurrentUserId();
         var newBoardId = await _boardDA.CreateBoardAsync(userId, model.Title, model.Description);
+        await _activityLog.LogAsync(
+            boardId: newBoardId,
+            userId: userId,
+            entityType: ActivityEntityType.Board,
+            entityId: newBoardId,
+            action: ActivityAction.BoardCreated,
+            details: $"\"{model.Title}\"");
+
 
         TempData["SuccessMessage"] = $"Tableau « {model.Title} » créé avec succès.";
         return RedirectToAction(nameof(Details), new { id = newBoardId });
@@ -142,6 +152,17 @@ public class BoardController : Controller
                         role = model.Role,
                         triggeredBy = User.Identity?.Name
                     });
+
+                if (invitedUserId.HasValue)
+                {
+                    await _activityLog.LogAsync(
+                        boardId: model.BoardId,
+                        userId: userId,
+                        entityType: ActivityEntityType.Member,
+                        entityId: invitedUserId.Value,
+                        action: ActivityAction.MemberAdded,
+                        details: $"{model.Email} en tant que {model.Role}");
+                }
                 break;
 
             case AddMemberResult.UserNotFound:
@@ -194,6 +215,17 @@ public class BoardController : Controller
                         newRole = newRole,
                         triggeredBy = User.Identity?.Name
                     });
+
+                // Pour le log : récupérer le username
+                var memberUsername = await _userDA.GetUsernameAsync(targetUserId) ?? "?";
+
+                await _activityLog.LogAsync(
+                    boardId: boardId,
+                    userId: userId,
+                    entityType: ActivityEntityType.Member,
+                    entityId: targetUserId,
+                    action: ActivityAction.MemberRoleChanged,
+                    details: $"{memberUsername} → {newRole}");
                 break;
 
             case ChangeRoleResult.CannotChangeOwnerRole:
@@ -257,6 +289,16 @@ public class BoardController : Controller
                         targetUserId = targetUserId,
                         triggeredBy = User.Identity?.Name
                     });
+
+                var removedUsername = await _userDA.GetUsernameAsync(targetUserId) ?? "?";
+
+                await _activityLog.LogAsync(
+                    boardId: boardId,
+                    userId: userId,
+                    entityType: ActivityEntityType.Member,
+                    entityId: targetUserId,
+                    action: ActivityAction.MemberRemoved,
+                    details: $"{removedUsername}");
                 break;
 
             case RemoveMemberResult.CannotRemoveOwner:
@@ -323,6 +365,14 @@ public class BoardController : Controller
                         targetUserId = userId,
                         triggeredBy = User.Identity?.Name
                     });
+
+                await _activityLog.LogAsync(
+                    boardId: boardId,
+                    userId: userId,
+                    entityType: ActivityEntityType.Member,
+                    entityId: userId,
+                    action: ActivityAction.MemberRemoved,// on réutilise MemberRemoved car le départ volontaire est aussi un retrait
+                    details: $"{User.Identity?.Name} (a quitté volontairement)");
 
                 return RedirectToAction(nameof(MyBoards));
 

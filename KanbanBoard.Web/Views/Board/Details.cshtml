@@ -135,6 +135,12 @@
     }
 
     <div class="ms-auto d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bs-toggle="offcanvas" data-bs-target="#activityPanel"
+                title="Voir l'activité récente">
+            🕐 Activité
+        </button>
+
         @if (isAdmin)
         {
             <button type="button" class="btn btn-sm btn-success"
@@ -453,6 +459,24 @@
         </div>
     </div>
 }
+
+@* ============ Panneau d'activité (offcanvas) ============ *@
+<div class="offcanvas offcanvas-end" tabindex="-1" id="activityPanel" aria-labelledby="activityPanelLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="activityPanelLabel">🕐 Activité récente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="activityList">
+            <div class="text-center text-muted py-3 small">Chargement...</div>
+        </div>
+        <div class="mt-3 text-center">
+            <button id="activityRefreshBtn" class="btn btn-sm btn-outline-primary">
+                🔄 Rafraîchir
+            </button>
+        </div>
+    </div>
+</div>
 
 @section Styles {
     <style>
@@ -795,6 +819,154 @@
                 return div.innerHTML;
             }
         })();
+
+                // ============ Panneau d'activité ============
+        (function () {
+            const activityPanel = document.getElementById('activityPanel');
+            const activityList = document.getElementById('activityList');
+            const refreshBtn = document.getElementById('activityRefreshBtn');
+
+            if (!activityPanel) return;
+
+            // Charge l'activité quand le panneau s'ouvre
+            activityPanel.addEventListener('show.bs.offcanvas', loadActivity);
+
+            refreshBtn.addEventListener('click', loadActivity);
+
+            async function loadActivity() {
+                activityList.innerHTML = '<div class="text-center text-muted py-3 small">Chargement...</div>';
+
+                try {
+                    const response = await fetch(`/Activity/GetRecent?boardId=${boardId}&limit=20`);
+                    if (!response.ok) {
+                        activityList.innerHTML = '<div class="text-center text-muted py-3 small">Erreur de chargement</div>';
+                        return;
+                    }
+
+                    const logs = await response.json();
+                    renderActivity(logs);
+                } catch (err) {
+                    console.error('Erreur fetch activity:', err);
+                    activityList.innerHTML = '<div class="text-center text-muted py-3 small">Erreur réseau</div>';
+                }
+            }
+
+            function renderActivity(logs) {
+                if (!logs || logs.length === 0) {
+                    activityList.innerHTML = '<div class="text-center text-muted py-3 small">Aucune activité enregistrée</div>';
+                    return;
+                }
+
+                const html = logs.map(log => {
+                    const dateStr = formatRelativeDate(log.occurredAt);
+                    const icon = getActionIcon(log.action);
+                    const message = getActionMessage(log);
+
+                    return `
+                        <div class="border-bottom py-2 small">
+                            <div class="d-flex">
+                                <div class="me-2" style="font-size: 1.2rem;">${icon}</div>
+                                <div class="flex-grow-1">
+                                    <div><strong>${escapeHtml(log.username)}</strong> ${message}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">${dateStr}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                activityList.innerHTML = html;
+            }
+
+            function getActionIcon(action) {
+                const icons = {
+                    'BoardCreated': '🎯',
+                    'BoardUpdated': '✏️',
+                    'CardCreated': '🆕',
+                    'CardUpdated': '✏️',
+                    'CardMoved': '↔️',
+                    'CardArchived': '📦',
+                    'CardUnarchived': '📤',
+                    'CardDeleted': '🗑️',
+                    'ColumnCreated': '➕',
+                    'ColumnRenamed': '✏️',
+                    'ColumnMoved': '↔️',
+                    'ColumnDeleted': '🗑️',
+                    'MemberAdded': '👤',
+                    'MemberRemoved': '👋',
+                    'MemberRoleChanged': '🔄',
+                    'CommentAdded': '💬',
+                    'CommentDeleted': '🗑️',
+                    'AttachmentUploaded': '📎',
+                    'AttachmentDeleted': '🗑️'
+                };
+                return icons[action] || '•';
+            }
+
+            function getActionMessage(log) {
+                const entity = log.entityName || '';
+
+                const messages = {
+                    'BoardCreated': `a créé le tableau ${entity}`,
+                    'BoardUpdated': `a modifié le tableau ${entity}`,
+                    'CardCreated': `a créé la carte ${entity}`,
+                    'CardUpdated': `a modifié la carte ${entity}`,
+                    'CardMoved': `a déplacé la carte ${entity}`,
+                    'CardArchived': `a archivé la carte ${entity}`,
+                    'CardUnarchived': `a désarchivé la carte ${entity}`,
+                    'CardDeleted': `a supprimé la carte ${entity}`,
+                    'ColumnCreated': `a créé la colonne ${entity}`,
+                    'ColumnRenamed': `a renommé la colonne ${entity}`,
+                    'ColumnMoved': `a déplacé la colonne ${entity}`,
+                    'ColumnDeleted': `a supprimé la colonne ${entity}`,
+                    'MemberAdded': `a invité ${entity}`,
+                    'MemberRemoved': `a retiré ${entity}`,
+                    'MemberRoleChanged': `a changé le rôle de ${entity}`,
+                    'CommentAdded': `a commenté ${entity}`,
+                    'CommentDeleted': `a supprimé un commentaire ${entity}`,
+                    'AttachmentUploaded': `a ajouté ${entity}`,
+                    'AttachmentDeleted': `a supprimé ${entity}`
+                };
+                return messages[log.action] || log.action;
+            }
+
+            function formatRelativeDate(dateStr) {
+                // Force l'interprétation en UTC (ajoute 'Z' si pas déjà là)
+                const dateUtc = typeof dateStr === 'string' && !dateStr.endsWith('Z')
+                    ? dateStr + 'Z'
+                    : dateStr;
+
+                const date = new Date(dateUtc);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMin = Math.floor(diffMs / 60000);
+                const diffHr = Math.floor(diffMs / 3600000);
+                const diffDay = Math.floor(diffMs / 86400000);
+
+                if (diffMin < 1) return 'à l\'instant';
+                if (diffMin < 60) return `il y a ${diffMin} min`;
+                if (diffHr < 24) return `il y a ${diffHr} h`;
+                if (diffDay < 7) return `il y a ${diffDay} j`;
+                return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // ============ SignalR : recharger automatiquement ============
+            connection.on('ActivityLogged', function (payload) {
+                if (payload.boardId === boardId) {
+                    // Si le panneau est visible, recharge en silence
+                    if (activityPanel.classList.contains('show')) {
+                        loadActivity();
+                    }
+                }
+            });
+        })();
+
         });
 
         // ============ Helper : toast notification ============

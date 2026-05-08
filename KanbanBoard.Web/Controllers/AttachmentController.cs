@@ -1,4 +1,5 @@
-﻿using KanbanBoard.LibrairieMetier.Interfaces;
+﻿using KanbanBoard.LibrairieMetier.Constants;
+using KanbanBoard.LibrairieMetier.Interfaces;
 using KanbanBoard.Web.Hubs;
 using KanbanBoard.Web.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -17,6 +18,7 @@ public class AttachmentController : Controller
     private readonly IBoardDA _boardDA;
     private readonly IWebHostEnvironment _env;
     private readonly NotificationService _notif;
+    private readonly ActivityLogService _activityLog;
     private readonly IHubContext<KanbanHub> _hub;
 
     // Constantes de validation
@@ -37,6 +39,7 @@ public class AttachmentController : Controller
         IBoardDA boardDA,
         IWebHostEnvironment env,
         NotificationService notif,
+        ActivityLogService activityLog,
         IHubContext<KanbanHub> hub)
     {
         _attachmentDA = attachmentDA;
@@ -44,6 +47,7 @@ public class AttachmentController : Controller
         _boardDA = boardDA;
         _env = env;
         _notif = notif;
+        _activityLog = activityLog;
         _hub = hub;
     }
 
@@ -122,10 +126,19 @@ public class AttachmentController : Controller
             fileUrl: webPath,
             fileSizeKB: sizeKB);
 
+        var card = await _cardDA.GetCardAsync(cardId);
+        var cardTitle = card?.Title ?? "?";
+
         TempData["SuccessMessage"] = $"Fichier « {originalFileName} » ajouté.";
+        await _activityLog.LogAsync(
+            boardId: boardId,
+            userId: userId,
+            entityType: ActivityEntityType.Attachment,
+            entityId: cardId, // on log l'Id de la carte
+            action: ActivityAction.AttachmentUploaded,
+            details: $"\"{originalFileName}\" sur \"{cardTitle}\"");
 
         // Notifier l'assignee de la carte (si différent de l'uploader)
-        var card = await _cardDA.GetCardAsync(cardId);
         if (card?.AssigneeId.HasValue == true && card.AssigneeId.Value != userId)
         {
             var boardTitle = await _boardDA.GetBoardTitleAsync(boardId) ?? "(sans titre)";
@@ -213,8 +226,7 @@ public class AttachmentController : Controller
         // Supprimer le fichier physique
         try
         {
-            var fileName = Path.GetFileName(attachment.FileUrl);
-            var physicalPath = Path.Combine(_env.WebRootPath, "uploads", fileName);
+            var physicalPath = Path.Combine(_env.WebRootPath, "uploads", Path.GetFileName(attachment.FileUrl));
             if (System.IO.File.Exists(physicalPath))
                 System.IO.File.Delete(physicalPath);
         }
@@ -224,21 +236,32 @@ public class AttachmentController : Controller
             // (peut-être déjà supprimé manuellement)
         }
 
+        var card = attachment != null ? await _cardDA.GetCardAsync(attachment.CardId) : null;
+        var cardTitle = card?.Title ?? "?";
+        var fileName = attachment?.FileName ?? "?";
         // Supprimer la ligne en base
         await _attachmentDA.DeleteAttachmentAsync(id);
 
         TempData["SuccessMessage"] = "Pièce jointe supprimée.";
+
+        await _activityLog.LogAsync(
+            boardId: boardId.Value,
+            userId: userId,
+            entityType: ActivityEntityType.Attachment,
+            entityId: attachment?.CardId,
+            action: ActivityAction.AttachmentDeleted,
+            details: $"\"{fileName}\" de \"{cardTitle}\"");
 
         await _hub.Clients
             .Group(KanbanHub.BoardGroupName(boardId.Value))
             .SendAsync("BoardChanged", new
             {
                 action = "AttachmentDeleted",
-                cardId = attachment.CardId,
+                cardId = attachment?.CardId,
                 triggeredBy = User.Identity?.Name
             });
 
-        return RedirectToAction("Edit", "Card", new { id = attachment.CardId });
+        return RedirectToAction("Edit", "Card", new { id = attachment?.CardId });
     }
 
     // ---------- HELPERS ----------

@@ -52,6 +52,7 @@ public class CardDA : ICardDA
             .Select(c => new KanbanCardViewModel
             {
                 Id = c.Id,
+                ColumnId = c.ColumnId,
                 Title = c.Title,
                 Description = c.Description,
                 Priority = c.Priority,
@@ -84,6 +85,13 @@ public class CardDA : ICardDA
     {
         var card = await _db.CARDs.FindAsync(cardId);
         if (card == null) return false;
+
+        // Supprimer manuellement les CARD_READ liés (cascade SQL impossible — multi-paths)
+        var cardReads = await _db.CARD_READs
+            .Where(cr => cr.CardId == cardId)
+            .ToListAsync();
+        if (cardReads.Any())
+            _db.CARD_READs.RemoveRange(cardReads);
 
         _db.CARDs.Remove(card);
         await _db.SaveChangesAsync();

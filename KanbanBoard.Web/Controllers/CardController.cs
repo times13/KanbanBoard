@@ -1,4 +1,6 @@
-﻿using KanbanBoard.LibrairieMetier.Interfaces;
+﻿using KanbanBoard.AccesDonnee.Implementations;
+using KanbanBoard.LibrairieMetier.Constants;
+using KanbanBoard.LibrairieMetier.Interfaces;
 using KanbanBoard.LibrairieMetier.ViewModels;
 using KanbanBoard.Web.Hubs;
 using KanbanBoard.Web.Services;
@@ -13,21 +15,26 @@ namespace KanbanBoard.Web.Controllers;
 public class CardController : Controller
 {
     private readonly ICardDA _cardDA;
+    private readonly IColumnDA _columnDA;
     private readonly IBoardDA _boardDA;
     private readonly ICommentDA _commentDA;
     private readonly ICardReadDA _cardReadDA;
     private readonly IAttachmentDA _attachmentDA;
     private readonly NotificationService _notif;
+    private readonly ActivityLogService _activityLog;
     private readonly IHubContext<KanbanHub> _hub;
 
-    public CardController(ICardDA cardDA, IBoardDA boardDA, ICommentDA commentDA, ICardReadDA cardReadDA, IAttachmentDA attachmentDA, NotificationService notif, IHubContext<KanbanHub> hub)
+    public CardController(ICardDA cardDA, IColumnDA columnDA, IBoardDA boardDA, ICommentDA commentDA, ICardReadDA cardReadDA,
+        IAttachmentDA attachmentDA, NotificationService notif, ActivityLogService activityLog, IHubContext<KanbanHub> hub)
     {
         _cardDA = cardDA;
+        _columnDA = columnDA;
         _boardDA = boardDA;
         _commentDA = commentDA;
         _cardReadDA = cardReadDA;
         _attachmentDA = attachmentDA;
         _notif = notif;
+        _activityLog = activityLog;
         _hub = hub;
     }
 
@@ -50,6 +57,15 @@ public class CardController : Controller
         }
 
         var newCardId = await _cardDA.CreateCardAsync(model.ColumnId, model.Title, model.Description, userId);
+        var columnTitle = await _columnDA.GetColumnTitleAsync(model.ColumnId) ?? "?";
+
+        await _activityLog.LogAsync(
+            boardId: model.BoardId,
+            userId: userId,
+            entityType: ActivityEntityType.Card,
+            entityId: newCardId, // l'Id retourné par CreateCardAsync
+            action: ActivityAction.CardCreated,
+            details: $"\"{model.Title}\" dans \"{columnTitle}\"");
 
         // 🔔 Broadcaster à tous les utilisateurs connectés sur ce tableau
         await _hub.Clients
@@ -131,6 +147,7 @@ public class CardController : Controller
 
         // Récupérer l'ancien assignee pour détecter le changement
         var oldCard = await _cardDA.GetCardAsync(model.Id);
+        var oldTitle = oldCard?.Title ?? "?";
         var oldAssigneeId = oldCard?.AssigneeId;
 
         var success = await _cardDA.UpdateCardAsync(
@@ -172,6 +189,28 @@ public class CardController : Controller
                 triggeredBy = User.Identity?.Name
             });
         TempData["SuccessMessage"] = "Carte mise à jour.";
+        if (success)
+        {
+            string detailsLog;
+            if (oldTitle != model.Title)
+            {
+                // Renommage détecté
+                detailsLog = $"\"{oldTitle}\" en \"{model.Title}\"";
+            }
+            else
+            {
+                // Modification autre que le titre
+                detailsLog = $"\"{model.Title}\"";
+            }
+
+            await _activityLog.LogAsync(
+                boardId: model.BoardId,
+                userId: userId,
+                entityType: ActivityEntityType.Card,
+                entityId: model.Id,
+                action: ActivityAction.CardUpdated,
+                details: detailsLog);
+        }
         return RedirectToAction("Details", "Board", new { id = model.BoardId });
     }
 
@@ -182,8 +221,14 @@ public class CardController : Controller
     public async Task<IActionResult> Delete(int id, int boardId)
     {
         var userId = GetCurrentUserId();
+
         if (!await _boardDA.UserIsAdminAsync(boardId, userId))
             return Forbid();
+
+        // Récupérer les infos AVANT suppression (pour le log)
+        var card = await _cardDA.GetCardAsync(id);
+        var cardTitle = card?.Title ?? "?";
+        var columnTitle = card != null ? (await _columnDA.GetColumnTitleAsync(card.ColumnId) ?? "?") : "?";
 
         var success = await _cardDA.DeleteCardAsync(id);
 
@@ -201,6 +246,14 @@ public class CardController : Controller
         }
         else
             TempData["ErrorMessage"] = "Carte introuvable.";
+
+        await _activityLog.LogAsync(
+            boardId: boardId, // le board récupéré au début
+            userId: userId,
+            entityType: ActivityEntityType.Card,
+            entityId: id,
+            action: ActivityAction.CardDeleted,
+            details: $"\"{cardTitle}\" de la colonne \"{columnTitle}\"");
 
         return RedirectToAction("Details", "Board", new { id = boardId });
     }
@@ -221,13 +274,31 @@ public class CardController : Controller
     {
         var userId = GetCurrentUserId();
 
-        // Membre ou Admin peut déplacer (Viewer non — UserHasAccess + role check)
         if (!await _boardDA.UserCanWriteAsync(request.BoardId, userId))
             return Json(new { success = false, error = "Vous êtes en lecture seule." });
 
+        var card = await _cardDA.GetCardAsync(request.CardId);
+        if (card == null) return NotFound();
+
+        var sourceColumnId = card.ColumnId;
+        var sourceColumnTitle = await _columnDA.GetColumnTitleAsync(sourceColumnId) ?? "?";
+        var targetColumnTitle = await _columnDA.GetColumnTitleAsync(request.TargetColumnId) ?? "?";
+        var cardTitle = card.Title;
+
         var success = await _cardDA.MoveCardAsync(request.CardId, request.TargetColumnId, request.NewPosition);
-        if (!success)
-            return NotFound();
+        if (!success) return NotFound();
+
+        // ON NE GARDE QUE CE BLOC DE LOG
+        if (sourceColumnId != request.TargetColumnId)
+        {
+            await _activityLog.LogAsync(
+                boardId: request.BoardId,
+                userId: userId,
+                entityType: ActivityEntityType.Card,
+                entityId: request.CardId,
+                action: ActivityAction.CardMoved,
+                details: $"\"{cardTitle}\" de \"{sourceColumnTitle}\" vers \"{targetColumnTitle}\"");
+        }
 
         // Broadcast aux autres clients
         await _hub.Clients
@@ -239,6 +310,8 @@ public class CardController : Controller
                 newPosition = request.NewPosition,
                 triggeredBy = User.Identity?.Name
             });
+
+        // --- LE DEUXIÈME APPEL A ÉTÉ SUPPRIMÉ ICI ---
 
         return Ok(new { success = true });
     }
