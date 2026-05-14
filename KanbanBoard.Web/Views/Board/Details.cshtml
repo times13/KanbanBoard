@@ -202,7 +202,7 @@
                     {
                         <div class="card mb-2 shadow-sm kanban-card"
                              data-card-id="@card.Id"
-                             data-card-edit-url="@Url.Action("Edit", "Card", new { id = card.Id })">
+                             data-card-edit-url="@Url.Action("Details", "Card", new { id = card.Id })">
                             <div class="card-body p-2">
                                 <p class="mb-1 small fw-bold">@card.Title</p>
                                 @if (!string.IsNullOrWhiteSpace(card.Description))

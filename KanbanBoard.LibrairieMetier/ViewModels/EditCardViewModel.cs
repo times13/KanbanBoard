@@ -1,14 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
-
 namespace KanbanBoard.LibrairieMetier.ViewModels;
-
 public class EditCardViewModel
 {
     [Required]
     public int Id { get; set; }
-
     [Required]
     public int BoardId { get; set; }
+
+    public int ColumnId { get; set; }
 
     [Required(ErrorMessage = "Le titre est requis.")]
     [StringLength(200, MinimumLength = 2)]
@@ -36,6 +35,9 @@ public class EditCardViewModel
 
     /// <summary>Username de l'assignee actuel (pour affichage). Rempli côté controller.</summary>
     public string? CurrentAssigneeUsername { get; set; }
+
+    /// <summary>Indique si la carte est archivée.</summary>
+    public bool IsArchived { get; set; }
 
     // -- Commentaires --
     public List<CommentViewModel> Comments { get; set; } = new();

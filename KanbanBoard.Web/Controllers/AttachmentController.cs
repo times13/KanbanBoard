@@ -64,21 +64,21 @@ public class AttachmentController : Controller
         if (!await _boardDA.UserCanWriteAsync(boardId, userId))
         {
             TempData["ErrorMessage"] = "Vous êtes en lecture seule, vous ne pouvez pas ajouter de pièce jointe.";
-            return RedirectToAction("Edit", "Card", new { id = cardId });
+            return RedirectToAction("Details", "Card", new { id = cardId });
         }
 
         // Validation : fichier présent
         if (file == null || file.Length == 0)
         {
             TempData["ErrorMessage"] = "Aucun fichier sélectionné.";
-            return RedirectToAction("Edit", "Card", new { id = cardId });
+            return RedirectToAction("Details", "Card", new { id = cardId });
         }
 
         // Validation : taille
         if (file.Length > MAX_FILE_SIZE)
         {
             TempData["ErrorMessage"] = "Le fichier dépasse la taille maximum (10 MB).";
-            return RedirectToAction("Edit", "Card", new { id = cardId });
+            return RedirectToAction("Details", "Card", new { id = cardId });
         }
 
         // Validation : extension
@@ -88,7 +88,7 @@ public class AttachmentController : Controller
         if (string.IsNullOrEmpty(extension) || !ALLOWED_EXTENSIONS.Contains(extension))
         {
             TempData["ErrorMessage"] = $"Type de fichier non autorisé ({extension}). Autorisés : images, PDF, Office, txt.";
-            return RedirectToAction("Edit", "Card", new { id = cardId });
+            return RedirectToAction("Details", "Card", new { id = cardId });
         }
 
         // Génération d'un nom unique : <GUID>_<nom_original>.<ext>
@@ -114,7 +114,7 @@ public class AttachmentController : Controller
         catch (Exception ex)
         {
             TempData["ErrorMessage"] = $"Erreur lors de la sauvegarde : {ex.Message}";
-            return RedirectToAction("Edit", "Card", new { id = cardId });
+            return RedirectToAction("Details", "Card", new { id = cardId });
         }
 
         // INSERT en base
@@ -162,7 +162,7 @@ public class AttachmentController : Controller
                 triggeredBy = User.Identity?.Name
             });
 
-        return RedirectToAction("Edit", "Card", new { id = cardId });
+        return RedirectToAction("Details", "Card", new { id = cardId });
     }
 
     // ---------- DOWNLOAD ----------
@@ -220,7 +220,7 @@ public class AttachmentController : Controller
         if (!isOwner && !isAdmin)
         {
             TempData["ErrorMessage"] = "Vous ne pouvez pas supprimer ce fichier (réservé à l'auteur ou un admin).";
-            return RedirectToAction("Edit", "Card", new { id = attachment.CardId });
+            return RedirectToAction("Details", "Card", new { id = attachment.CardId });
         }
 
         // Supprimer le fichier physique
@@ -261,7 +261,7 @@ public class AttachmentController : Controller
                 triggeredBy = User.Identity?.Name
             });
 
-        return RedirectToAction("Edit", "Card", new { id = attachment?.CardId });
+        return RedirectToAction("Details", "Card", new { id = attachment?.CardId });
     }
 
     // ---------- HELPERS ----------

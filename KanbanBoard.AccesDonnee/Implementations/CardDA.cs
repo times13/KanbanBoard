@@ -93,6 +93,13 @@ public class CardDA : ICardDA
         if (cardReads.Any())
             _db.CARD_READs.RemoveRange(cardReads);
 
+        // Détacher les notifications de la carte (garde l'historique côté users)
+        var notifs = await _db.NOTIFICATIONs
+            .Where(n => n.CardId == cardId)
+            .ToListAsync();
+        foreach (var n in notifs)
+            n.CardId = null;
+
         _db.CARDs.Remove(card);
         await _db.SaveChangesAsync();
         return true;

@@ -211,17 +211,73 @@ public class CardController : Controller
                 action: ActivityAction.CardUpdated,
                 details: detailsLog);
         }
-        return RedirectToAction("Details", "Board", new { id = model.BoardId });
+        return RedirectToAction(nameof(Details), new { id = model.Id });
+    }
+
+    // ---------- DETAILS (CONSULTATION) ----------
+
+    [HttpGet]
+    public async Task<IActionResult> Details(int id)
+    {
+        var userId = GetCurrentUserId();
+
+        var card = await _cardDA.GetCardAsync(id);
+        if (card == null) return NotFound();
+
+        var boardId = await _cardDA.GetCardBoardIdAsync(id);
+        if (boardId == null) return NotFound();
+
+        if (!await _boardDA.UserHasAccessAsync(boardId.Value, userId))
+        {
+            TempData["ErrorMessage"] = "Vous n'avez pas accès à cette carte.";
+            return RedirectToAction("MyBoards", "Board");
+        }
+
+        // Marquer la carte comme lue (les commentaires non-lus deviennent lus)
+        await _cardReadDA.MarkAsReadAsync(userId, id);
+
+        // Charger commentaires + attachments + membres
+        var comments = await _commentDA.GetForCardAsync(id);
+        var attachments = await _attachmentDA.GetForCardAsync(id);
+        var members = await _boardDA.GetMembersAsync(boardId.Value);
+
+        // Récupérer le nom de la colonne pour l'afficher
+        var columnTitle = await _columnDA.GetColumnTitleAsync(card.ColumnId) ?? "?";
+
+        // Construire le ViewModel — on réutilise le EditCardViewModel avec mêmes champs
+        var model = new EditCardViewModel
+        {
+            Id = card.Id,
+            BoardId = boardId.Value,
+            ColumnId = card.ColumnId,
+            Title = card.Title,
+            Description = card.Description,
+            Priority = card.Priority,
+            DueDate = card.DueDate,
+            AssigneeId = card.AssigneeId,
+            IsArchived = card.IsArchived,
+            Comments = comments,
+            AvailableMembers = members
+        };
+
+        ViewData["Members"] = members;
+        ViewData["IsAdmin"] = await _boardDA.UserIsAdminAsync(boardId.Value, userId);
+        ViewData["CurrentUserId"] = userId;
+        ViewData["CanWrite"] = await _boardDA.UserCanWriteAsync(boardId.Value, userId);
+        ViewData["AssigneeUsername"] = card.AssigneeUsername;
+        ViewData["ColumnTitle"] = columnTitle;
+        ViewData["Comments"] = comments;
+        ViewData["Attachments"] = attachments;
+
+        return View(model);
     }
 
     // ---------- DELETE ----------
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, int boardId)
     {
         var userId = GetCurrentUserId();
-
         if (!await _boardDA.UserIsAdminAsync(boardId, userId))
             return Forbid();
 
@@ -242,18 +298,22 @@ public class CardController : Controller
                     cardId = id,
                     triggeredBy = User.Identity?.Name
                 });
+
             TempData["SuccessMessage"] = "Carte supprimée.";
+
+            // Log seulement si la suppression a réussi
+            await _activityLog.LogAsync(
+                boardId: boardId,
+                userId: userId,
+                entityType: ActivityEntityType.Card,
+                entityId: id,
+                action: ActivityAction.CardDeleted,
+                details: $"\"{cardTitle}\" de la colonne \"{columnTitle}\"");
         }
         else
+        {
             TempData["ErrorMessage"] = "Carte introuvable.";
-
-        await _activityLog.LogAsync(
-            boardId: boardId, // le board récupéré au début
-            userId: userId,
-            entityType: ActivityEntityType.Card,
-            entityId: id,
-            action: ActivityAction.CardDeleted,
-            details: $"\"{cardTitle}\" de la colonne \"{columnTitle}\"");
+        }
 
         return RedirectToAction("Details", "Board", new { id = boardId });
     }

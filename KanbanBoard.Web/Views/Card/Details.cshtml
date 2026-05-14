@@ -1,0 +1,357 @@
+﻿@model KanbanBoard.LibrairieMetier.ViewModels.EditCardViewModel
+@{
+    ViewData["Title"] = $"Carte : {Model.Title}";
+    var members = ViewData["Members"] as List<KanbanBoard.LibrairieMetier.ViewModels.BoardMemberItemViewModel>
+              ?? new List<KanbanBoard.LibrairieMetier.ViewModels.BoardMemberItemViewModel>();
+    var isAdmin = ViewData["IsAdmin"] is true;
+    var canWrite = ViewData["CanWrite"] is true;
+    var currentUserId = ViewData["CurrentUserId"] as int? ?? 0;
+    var assigneeUsername = ViewData["AssigneeUsername"] as string;
+    var columnTitle = ViewData["ColumnTitle"] as string ?? "?";
+    var comments = Model.Comments;
+    var attachments = ViewData["Attachments"] as List<KanbanBoard.LibrairieMetier.ViewModels.AttachmentViewModel>
+                      ?? new List<KanbanBoard.LibrairieMetier.ViewModels.AttachmentViewModel>();
+
+    var priorityClass = Model.Priority switch
+    {
+        "Critical" => "bg-danger",
+        "High" => "bg-warning text-dark",
+        "Medium" => "bg-info",
+        "Low" => "bg-secondary",
+        _ => "bg-secondary"
+    };
+}
+
+<div class="container mt-4">
+
+    @* Messages TempData *@
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* Header avec titre et boutons *@
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <a asp-controller="Board" asp-action="Details" asp-route-id="@Model.BoardId"
+               class="btn btn-sm btn-outline-secondary mb-2">
+                ← Retour au tableau
+            </a>
+            <h2 class="mb-1">@Model.Title</h2>
+            <p class="text-muted mb-0">
+                <span class="badge @priorityClass">@Model.Priority</span>
+                <span class="ms-2">📋 dans la colonne <strong>@columnTitle</strong></span>
+                @if (Model.IsArchived)
+                {
+                    <span class="badge bg-warning text-dark ms-2">📦 Archivée</span>
+                }
+            </p>
+        </div>
+        @if (canWrite)
+        {
+            <a asp-controller="Card" asp-action="Edit" asp-route-id="@Model.Id"
+               class="btn btn-primary">
+                ✏️ Modifier
+            </a>
+        }
+    </div>
+
+    @* Carte d'informations principales *@
+    <div class="row">
+        <div class="col-md-8">
+
+            @* Description *@
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">📝 Description</h5>
+                    @if (string.IsNullOrWhiteSpace(Model.Description))
+                    {
+                        <p class="text-muted fst-italic mb-0">Aucune description.</p>
+                    }
+                    else
+                    {
+                        <p class="mb-0" style="white-space: pre-wrap;">@Model.Description</p>
+                    }
+                </div>
+            </div>
+
+            @* Pièces jointes *@
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        📎 Pièces jointes
+                        <span class="badge bg-secondary">@attachments.Count</span>
+                    </h5>
+                    @* Formulaire d'upload (non-Viewer uniquement) *@
+                    @if (canWrite)
+                    {
+                        <form id="uploadForm" asp-controller="Attachment" asp-action="Upload" method="post" enctype="multipart/form-data" class="mb-3 mt-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="cardId" value="@Model.Id" />
+                            <input type="hidden" name="boardId" value="@Model.BoardId" />
+
+                            <div class="input-group">
+                                <input type="file" id="uploadFile" name="file" class="form-control" required
+                                       accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" />
+                                <button type="submit" class="btn btn-primary">📤 Uploader</button>
+                            </div>
+                            <div class="form-text small">
+                                Types autorisés : images, PDF, Office, txt. Taille max : 10 MB.
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-3">
+                            🔒 Mode lecture seule.
+                        </p>
+                    }
+                    @if (!attachments.Any())
+                    {
+                        <p class="text-muted text-center py-2 mb-0">Aucune pièce jointe.</p>
+                    }
+                    else
+                    {
+                        <div class="row g-2 mt-2">
+                            @foreach (var att in attachments)
+                            {
+                                var ext = System.IO.Path.GetExtension(att.FileName).ToLowerInvariant();
+                                var isImage = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" }.Contains(ext);
+
+                                var icon = ext switch
+                                {
+                                    ".pdf" => "📕",
+                                    ".doc" or ".docx" => "📘",
+                                    ".xls" or ".xlsx" => "📗",
+                                    ".ppt" or ".pptx" => "📙",
+                                    ".txt" => "📄",
+                                    _ when isImage => "🖼️",
+                                    _ => "📎"
+                                };
+
+                                <div class="col-md-6">
+                                    <div class="border rounded p-2">
+                                        @if (isImage)
+                                        {
+                                            <a asp-controller="Attachment" asp-action="Download"
+                                               asp-route-id="@att.Id" title="Télécharger @att.FileName">
+                                                <img src="@att.FileUrl" alt="@att.FileName"
+                                                     class="img-fluid rounded mb-2"
+                                                     style="max-height: 100px; object-fit: cover; width: 100%;" />
+                                            </a>
+                                        }
+                                        <a asp-controller="Attachment" asp-action="Download"
+                                           asp-route-id="@att.Id"
+                                           class="text-decoration-none small fw-bold d-block text-truncate"
+                                           title="@att.FileName">
+                                            @icon @att.FileName
+                                        </a>
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <small class="text-muted">
+                                                @att.UploadedByUsername • @att.UploadedAt.ToString("dd/MM HH:mm")
+                                            </small>
+                                            @{
+                                                var canDeleteAtt = att.UploadedById == currentUserId || isAdmin;
+                                            }
+                                            @if (canDeleteAtt)
+                                            {
+                                                <form asp-controller="Attachment" asp-action="Delete" method="post"
+                                                      onsubmit="return confirm('Supprimer cette pièce jointe ?');"
+                                                      class="d-inline ms-2">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@att.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-link text-danger p-0"
+                                                            title="Supprimer">
+                                                        ✕
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* Commentaires *@
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        💬 Commentaires
+                        <span class="badge bg-secondary">@comments.Count</span>
+                    </h5>
+
+                    @* Formulaire d'ajout de commentaire (non-Viewer uniquement) *@
+                    @if (canWrite)
+                    {
+                        <form asp-controller="Comment" asp-action="Add" method="post" class="mb-3 mt-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="cardId" value="@Model.Id" />
+                            <input type="hidden" name="boardId" value="@Model.BoardId" />
+                            <div class="input-group">
+                                <textarea name="content" class="form-control" rows="2"
+                                      placeholder="Ajouter un commentaire..." required></textarea>
+                                <button type="submit" class="btn btn-primary">Envoyer</button>
+                            </div>
+                        </form>
+                    }
+
+                    @* Liste des commentaires *@
+                    @if (!comments.Any())
+                    {
+                        <p class="text-muted text-center py-2 mb-0">Aucun commentaire.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var c in comments)
+                            {
+                                var canDeleteComment = c.AuthorId == currentUserId || isAdmin;
+                                <li class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <strong>@c.AuthorUsername</strong>
+                                            <small class="text-muted ms-2">@c.CreatedAt.ToString("dd/MM HH:mm")</small>
+                                            <div class="mt-1" style="white-space: pre-wrap;">@c.Content</div>
+                                        </div>
+                                        @if (canDeleteComment)
+                                        {
+                                            <form asp-controller="Comment" asp-action="Delete" method="post"
+                                                  onsubmit="return confirm('Supprimer ce commentaire ?');"
+                                                  class="d-inline ms-2">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@c.Id" />
+                                                <button type="submit" class="btn btn-sm btn-link text-danger p-0"
+                                                        title="Supprimer">
+                                                    ✕
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* Sidebar — Informations *@
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="card-title text-muted text-uppercase small">Informations</h6>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Priorité</small>
+                        <span class="badge @priorityClass">@Model.Priority</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Date d'échéance</small>
+                        @if (Model.DueDate.HasValue)
+                        {
+                            <strong>@Model.DueDate.Value.ToString("dddd dd MMMM yyyy")</strong>
+                        }
+                        else
+                        {
+                            <span class="fst-italic text-muted">Non définie</span>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Assignée à</small>
+                        @if (!string.IsNullOrEmpty(assigneeUsername))
+                        {
+                            <strong>👤 @assigneeUsername</strong>
+                        }
+                        else
+                        {
+                            <span class="fst-italic text-muted">Non assignée</span>
+                        }
+                    </div>
+
+                    <div class="mb-0">
+                        <small class="text-muted d-block">Colonne</small>
+                        <strong>📋 @columnTitle</strong>
+                    </div>
+                </div>
+            </div>
+
+            @* Bouton supprimer (Admin only) *@
+            @if (isAdmin)
+            {
+                <form asp-controller="Card" asp-action="Delete" method="post"
+                      onsubmit="return confirm('Vraiment supprimer cette carte ? Cette action est irréversible.');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="hidden" name="boardId" value="@Model.BoardId" />
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        🗑️ Supprimer la carte
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/microsoft-signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        const cardId = @Model.Id;
+        const boardId = @Model.BoardId;
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/kanbanHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("BoardChanged", function (payload) {
+            if (payload.cardId === cardId) {
+                // Si la carte a été supprimée, ne pas reload (ça va donner 404)
+                // → on redirige vers le tableau
+                if (payload.action === "CardDeleted") {
+                    window.location.href = '/Board/Details/' + boardId;
+                    return;
+                }
+                // Pour les autres changements, on recharge la page Details
+                window.location.reload();
+            }
+        });
+
+        connection.start()
+            .then(() => connection.invoke("JoinBoard", boardId))
+            .catch(err => console.error("SignalR error:", err));
+
+                    // ============ Validation taille upload côté client ============
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadFile = document.getElementById('uploadFile');
+        const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+        if (uploadForm && uploadFile) {
+            uploadForm.addEventListener('submit', function (e) {
+                if (uploadFile.files.length > 0) {
+                    const file = uploadFile.files[0];
+                    if (file.size > MAX_SIZE_BYTES) {
+                        e.preventDefault();
+                        const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+                        alert(`Le fichier « ${file.name} » fait ${sizeMB} MB.\nTaille maximum : 10 MB.`);
+                        uploadFile.value = ''; // reset
+                    }
+                }
+            });
+        }
+    </script>
+}

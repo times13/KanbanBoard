@@ -44,19 +44,19 @@ public class CommentController : Controller
         if (!await _boardDA.UserCanWriteAsync(boardId, userId))
         {
             TempData["ErrorMessage"] = "Vous êtes en lecture seule sur ce tableau, vous ne pouvez pas commenter.";
-            return RedirectToAction("Edit", "Card", new { id = cardId });
+            return RedirectToAction("Details", "Card", new { id = cardId });
         }
 
         if (string.IsNullOrWhiteSpace(content))
         {
             TempData["ErrorMessage"] = "Le commentaire ne peut pas être vide.";
-            return RedirectToAction("Edit", "Card", new { id = cardId });
+            return RedirectToAction("Details", "Card", new { id = cardId });
         }
 
         if (content.Length > 2000)
         {
             TempData["ErrorMessage"] = "Le commentaire est trop long (2000 caractères max).";
-            return RedirectToAction("Edit", "Card", new { id = cardId });
+            return RedirectToAction("Details", "Card", new { id = cardId });
         }
 
         var card = await _cardDA.GetCardAsync(cardId);
@@ -81,7 +81,7 @@ public class CommentController : Controller
             entityId: cardId, // on log l'Id de la carte (plus utile pour retrouver)
             action: ActivityAction.CommentAdded,
             details: $"sur \"{cardTitle}\"");
-        return RedirectToAction("Edit", "Card", new { id = cardId });
+        return RedirectToAction("Details", "Card", new { id = cardId });
     }
 
     // ---------- DELETE ----------
@@ -128,7 +128,7 @@ public class CommentController : Controller
             entityId: comment?.CardId,
             action: ActivityAction.CommentDeleted,
             details: $"sur \"{cardTitle}\"");
-        return RedirectToAction("Edit", "Card", new { id = comment?.CardId });
+        return RedirectToAction("Details", "Card", new { id = comment?.CardId });
     }
 
     // ---------- HELPER ----------
