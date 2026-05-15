@@ -1,46 +1,103 @@
 ﻿/* ============================================
-   KanbanBoard — Custom theme (Indigo/Violet moderne)
-   Inspiré de Linear, Notion, Vercel
+   KanbanBoard — Custom theme (Linear / Notion)
+   Light & Dark mode with smooth transitions
    ============================================ */
 
-/* ----- 1. Google Fonts ----- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* ----- 2. CSS Variables — Palette ----- */
+/* ============================================
+   LIGHT MODE (par défaut)
+   ============================================ */
 :root {
-    /* Couleurs principales */
-    --kb-primary: #6366f1; /* Indigo 500 */
-    --kb-primary-hover: #4f46e5; /* Indigo 600 */
-    --kb-primary-light: #eef2ff; /* Indigo 50 */
-    --kb-primary-dark: #3730a3; /* Indigo 800 */
-    /* Accent */
-    --kb-accent: #8b5cf6; /* Violet 500 */
-    --kb-accent-light: #f3f4f6;
-    /* Neutres */
-    --kb-bg: #f9fafb; /* Background principal */
-    --kb-bg-card: #ffffff;
-    --kb-border: #e5e7eb;
-    --kb-text: #111827;
-    --kb-text-muted: #6b7280;
-    /* Status colors (priorités) */
-    --kb-success: #10b981;
-    --kb-warning: #f59e0b;
-    --kb-danger: #ef4444;
-    --kb-info: #3b82f6;
-    /* Shadows */
-    --kb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --kb-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-    --kb-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-    --kb-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    /* Backgrounds — tons chauds inspirés Notion/Linear */
+    --kb-bg-page: #fdfcfb; /* cream très subtil */
+    --kb-bg-content: #faf9f7; /* beige doux */
+    --kb-bg-card: #ffffff; /* blanc pur pour cartes */
+    --kb-bg-elevated: #ffffff; /* modales, dropdowns */
+    --kb-bg-hover: #f4f3f0; /* hover */
+    --kb-bg-subtle: #ede9e3; /* zones subtiles */
+    /* Couleurs accent */
+    --kb-primary: #5b21b6; /* Violet 800 profond */
+    --kb-primary-hover: #4c1d95; /* Violet 900 */
+    --kb-primary-light: #ede9fe; /* Violet 100 */
+    --kb-primary-soft: #c4b5fd; /* Violet 300 */
+
+    --kb-accent: #ec4899; /* Pink 500 — accent secondaire */
+    /* Texte */
+    --kb-text: #18181b; /* Zinc 900 — quasi noir */
+    --kb-text-secondary: #52525b; /* Zinc 600 */
+    --kb-text-muted: #a1a1aa; /* Zinc 400 */
+    /* Bordures */
+    --kb-border: #e4e4e7; /* Zinc 200 */
+    --kb-border-light: #f4f4f5; /* Zinc 100 */
+    /* États */
+    --kb-success: #16a34a;
+    --kb-warning: #ea580c;
+    --kb-danger: #dc2626;
+    --kb-info: #2563eb;
+    /* Ombres colorées (subtiles violet) */
+    --kb-shadow-sm: 0 1px 2px rgba(91, 33, 182, 0.04);
+    --kb-shadow: 0 2px 4px rgba(91, 33, 182, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --kb-shadow-md: 0 4px 12px rgba(91, 33, 182, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --kb-shadow-lg: 0 12px 32px rgba(91, 33, 182, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+    --kb-shadow-glow: 0 0 0 3px rgba(91, 33, 182, 0.1);
 }
 
-/* ----- 3. Base typography ----- */
+/* ============================================
+   DARK MODE
+   ============================================ */
+[data-theme="dark"] {
+    /* Backgrounds — tons sombres avec teinte violette */
+    --kb-bg-page: #0c0a14; /* Noir profond légèrement violet */
+    --kb-bg-content: #14101f; /* Slate violet sombre */
+    --kb-bg-card: #1c1729; /* Cartes */
+    --kb-bg-elevated: #251f36; /* Modales */
+    --kb-bg-hover: #2a2440; /* Hover */
+    --kb-bg-subtle: #1f1a2d;
+    /* Couleurs accent (plus claires en dark) */
+    --kb-primary: #a78bfa; /* Violet 400 — lumineux */
+    --kb-primary-hover: #c4b5fd; /* Violet 300 */
+    --kb-primary-light: #2e1065; /* Violet 950 — fond subtle */
+    --kb-primary-soft: #6d28d9; /* Violet 700 */
+
+    --kb-accent: #f472b6; /* Pink 400 */
+    /* Texte (inversé) */
+    --kb-text: #fafafa; /* Zinc 50 */
+    --kb-text-secondary: #d4d4d8; /* Zinc 300 */
+    --kb-text-muted: #71717a; /* Zinc 500 */
+    /* Bordures */
+    --kb-border: #2e2842;
+    --kb-border-light: #251f36;
+    /* États (un peu plus vifs en dark) */
+    --kb-success: #22c55e;
+    --kb-warning: #fb923c;
+    --kb-danger: #ef4444;
+    --kb-info: #3b82f6;
+    /* Ombres (moins fortes en dark, plus profondes) */
+    --kb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --kb-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --kb-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+    --kb-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+    --kb-shadow-glow: 0 0 0 3px rgba(167, 139, 250, 0.2);
+}
+
+/* ============================================
+   TRANSITIONS SMOOTH ENTRE LES THEMES
+   ============================================ */
+* {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* ============================================
+   BASE
+   ============================================ */
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: var(--kb-bg);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--kb-bg-page);
     color: var(--kb-text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.011em;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -49,40 +106,64 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--kb-text);
 }
 
-/* ----- 4. Navbar ----- */
+h2 {
+    font-size: 1.875rem;
+    margin-bottom: 1.5rem;
+}
+
+a {
+    color: var(--kb-primary);
+    text-decoration: none;
+}
+
+    a:hover {
+        color: var(--kb-primary-hover);
+    }
+
+/* ============================================
+   NAVBAR — Gradient violet → rose
+   ============================================ */
 .navbar {
     background: linear-gradient(135deg, var(--kb-primary) 0%, var(--kb-accent) 100%) !important;
     box-shadow: var(--kb-shadow-md);
     border: none !important;
+    padding: 0.85rem 1.5rem;
 }
 
-    .navbar .navbar-brand,
-    .navbar .nav-link {
+    .navbar .navbar-brand {
+        font-size: 1.3rem;
+        font-weight: 800;
         color: #ffffff !important;
-        font-weight: 600;
+        letter-spacing: -0.03em;
+    }
+
+    .navbar .nav-link {
+        color: rgba(255, 255, 255, 0.95) !important;
+        font-weight: 500;
+        transition: opacity 0.15s ease;
     }
 
         .navbar .nav-link:hover {
-            color: rgba(255, 255, 255, 0.85) !important;
+            color: #ffffff !important;
+            opacity: 0.85;
         }
 
-    .navbar .navbar-brand {
-        font-size: 1.25rem;
-        letter-spacing: -0.025em;
-    }
-
-/* ----- 5. Buttons ----- */
+/* ============================================
+   BOUTONS
+   ============================================ */
 .btn {
     font-weight: 500;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1rem;
+    border-radius: 0.625rem;
+    padding: 0.55rem 1.1rem;
     transition: all 0.15s ease;
     letter-spacing: -0.01em;
+    border-width: 1px;
 }
 
 .btn-primary {
     background-color: var(--kb-primary);
     border-color: var(--kb-primary);
+    color: #ffffff;
     box-shadow: var(--kb-shadow-sm);
 }
 
@@ -91,16 +172,52 @@ h1, h2, h3, h4, h5, h6 {
         border-color: var(--kb-primary-hover);
         transform: translateY(-1px);
         box-shadow: var(--kb-shadow-md);
+        color: #ffffff;
     }
 
 .btn-outline-primary {
     color: var(--kb-primary);
     border-color: var(--kb-primary);
+    background-color: transparent;
 }
 
     .btn-outline-primary:hover {
         background-color: var(--kb-primary);
         border-color: var(--kb-primary);
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+.btn-outline-secondary {
+    color: var(--kb-text-secondary);
+    border-color: var(--kb-border);
+    background-color: transparent;
+}
+
+    .btn-outline-secondary:hover {
+        background-color: var(--kb-bg-hover);
+        border-color: var(--kb-border);
+        color: var(--kb-text);
+    }
+
+.btn-success {
+    background-color: var(--kb-success);
+    border-color: var(--kb-success);
+}
+
+.btn-danger {
+    background-color: var(--kb-danger);
+    border-color: var(--kb-danger);
+}
+
+.btn-outline-danger {
+    color: var(--kb-danger);
+    border-color: var(--kb-danger);
+}
+
+    .btn-outline-danger:hover {
+        background-color: var(--kb-danger);
+        color: #ffffff;
     }
 
 .btn-sm {
@@ -108,60 +225,65 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.875rem;
 }
 
-/* ----- 6. Cards ----- */
+/* ============================================
+   CARTES
+   ============================================ */
 .card {
     border: 1px solid var(--kb-border);
     border-radius: 0.75rem;
     background-color: var(--kb-bg-card);
     box-shadow: var(--kb-shadow-sm);
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .card-header {
     background-color: var(--kb-bg-card) !important;
-    border-bottom: 1px solid var(--kb-border);
+    border-bottom: 1px solid var(--kb-border-light);
     border-radius: 0.75rem 0.75rem 0 0 !important;
     font-weight: 600;
+    color: var(--kb-text);
     padding: 1rem 1.25rem;
 }
 
 .card-body {
     padding: 1.25rem;
+    color: var(--kb-text);
 }
 
 .shadow-sm {
     box-shadow: var(--kb-shadow-sm) !important;
 }
 
-/* ----- 7. Kanban Board styles ----- */
+/* ============================================
+   KANBAN BOARD
+   ============================================ */
 .kanban-board {
     padding: 1rem 0.5rem;
-    background-color: var(--kb-bg);
 }
 
 .kanban-column .card {
-    background-color: #f3f4f6 !important;
+    background-color: var(--kb-bg-content) !important;
     border: 1px solid var(--kb-border);
 }
 
 .kanban-column .card-header {
-    background-color: #f9fafb !important;
+    background-color: var(--kb-bg-subtle) !important;
     border-bottom: 1px solid var(--kb-border);
 }
 
 .kanban-column h6 {
-    color: var(--kb-text);
-    font-weight: 600;
-    font-size: 0.85rem;
-    letter-spacing: 0.025em;
+    color: var(--kb-text-secondary);
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
 }
 
-/* Cartes Kanban */
+/* Cartes Kanban — le bijou */
 .kanban-card {
     background-color: var(--kb-bg-card) !important;
     border: 1px solid var(--kb-border) !important;
-    border-radius: 0.5rem !important;
+    border-radius: 0.625rem !important;
     transition: all 0.15s ease;
     cursor: grab;
     box-shadow: var(--kb-shadow-sm) !important;
@@ -170,7 +292,7 @@ h1, h2, h3, h4, h5, h6 {
     .kanban-card:hover {
         transform: translateY(-2px);
         box-shadow: var(--kb-shadow-md) !important;
-        border-color: var(--kb-primary) !important;
+        border-color: var(--kb-primary-soft) !important;
     }
 
     .kanban-card:active {
@@ -187,12 +309,15 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: var(--kb-shadow-lg) !important;
 }
 
-/* ----- 8. Badges ----- */
+/* ============================================
+   BADGES
+   ============================================ */
 .badge {
     font-weight: 500;
     letter-spacing: 0.025em;
-    padding: 0.35em 0.65em;
-    border-radius: 0.375rem;
+    padding: 0.35em 0.7em;
+    border-radius: 0.4rem;
+    font-size: 0.7rem;
 }
 
     .badge.bg-primary {
@@ -205,7 +330,7 @@ h1, h2, h3, h4, h5, h6 {
 
     .badge.bg-warning {
         background-color: var(--kb-warning) !important;
-        color: #fff !important;
+        color: #ffffff !important;
     }
 
     .badge.bg-success {
@@ -214,172 +339,388 @@ h1, h2, h3, h4, h5, h6 {
 
     .badge.bg-info {
         background-color: var(--kb-info) !important;
-        color: #fff !important;
+        color: #ffffff !important;
     }
 
-/* ----- 9. Forms ----- */
+    .badge.bg-secondary {
+        background-color: var(--kb-text-muted) !important;
+        color: #ffffff !important;
+    }
+
+    .badge.bg-light {
+        background-color: var(--kb-bg-subtle) !important;
+        color: var(--kb-text) !important;
+    }
+
+/* ============================================
+   FORMS
+   ============================================ */
 .form-control, .form-select {
+    background-color: var(--kb-bg-card);
     border: 1px solid var(--kb-border);
     border-radius: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    padding: 0.55rem 0.85rem;
+    color: var(--kb-text);
+    transition: all 0.15s ease;
 }
 
     .form-control:focus, .form-select:focus {
+        background-color: var(--kb-bg-card);
         border-color: var(--kb-primary);
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        box-shadow: var(--kb-shadow-glow);
+        color: var(--kb-text);
+    }
+
+    .form-control::placeholder {
+        color: var(--kb-text-muted);
     }
 
 .form-label {
     font-weight: 500;
     color: var(--kb-text);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     font-size: 0.875rem;
 }
 
-/* ----- 10. Modals ----- */
+.form-text {
+    color: var(--kb-text-muted);
+}
+
+/* ============================================
+   MODALS
+   ============================================ */
 .modal-content {
-    border: none;
-    border-radius: 0.75rem;
+    background-color: var(--kb-bg-elevated);
+    border: 1px solid var(--kb-border);
+    border-radius: 0.875rem;
     box-shadow: var(--kb-shadow-lg);
+    color: var(--kb-text);
 }
 
 .modal-header {
-    border-bottom: 1px solid var(--kb-border);
+    border-bottom: 1px solid var(--kb-border-light);
     padding: 1.25rem 1.5rem;
 }
 
 .modal-title {
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+    color: var(--kb-text);
 }
 
 .modal-body {
     padding: 1.5rem;
+    color: var(--kb-text);
 }
 
 .modal-footer {
-    border-top: 1px solid var(--kb-border);
+    border-top: 1px solid var(--kb-border-light);
     padding: 1rem 1.5rem;
 }
 
-/* ----- 11. Alerts ----- */
+/* ============================================
+   ALERTS
+   ============================================ */
 .alert {
     border: none;
-    border-radius: 0.5rem;
-    padding: 1rem 1.25rem;
+    border-radius: 0.625rem;
+    padding: 0.875rem 1.125rem;
     font-weight: 500;
 }
 
-.alert-success {
-    background-color: #d1fae5;
-    color: #065f46;
+[data-theme="light"] .alert-success, :root .alert-success {
+    background-color: #dcfce7;
+    color: #14532d;
 }
 
-.alert-danger {
+[data-theme="light"] .alert-danger, :root .alert-danger {
     background-color: #fee2e2;
-    color: #991b1b;
+    color: #7f1d1d;
 }
 
-.alert-info {
+[data-theme="light"] .alert-info, :root .alert-info {
     background-color: var(--kb-primary-light);
-    color: var(--kb-primary-dark);
+    color: var(--kb-primary-hover);
 }
 
-.alert-warning {
-    background-color: #fef3c7;
-    color: #92400e;
+[data-theme="light"] .alert-warning, :root .alert-warning {
+    background-color: #ffedd5;
+    color: #7c2d12;
 }
 
-/* ----- 12. Dropdowns ----- */
+[data-theme="dark"] .alert-success {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #86efac;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .alert-info {
+    background-color: rgba(167, 139, 250, 0.15);
+    color: #c4b5fd;
+}
+
+[data-theme="dark"] .alert-warning {
+    background-color: rgba(251, 146, 60, 0.15);
+    color: #fdba74;
+}
+
+/* ============================================
+   DROPDOWNS
+   ============================================ */
 .dropdown-menu {
+    background-color: var(--kb-bg-elevated);
     border: 1px solid var(--kb-border);
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     box-shadow: var(--kb-shadow-md);
     padding: 0.5rem;
 }
 
 .dropdown-item {
-    border-radius: 0.375rem;
+    border-radius: 0.4rem;
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
+    color: var(--kb-text);
 }
 
-    .dropdown-item:hover {
-        background-color: var(--kb-primary-light);
-        color: var(--kb-primary-dark);
+    .dropdown-item:hover, .dropdown-item:focus {
+        background-color: var(--kb-bg-hover);
+        color: var(--kb-text);
     }
 
-/* ----- 13. Offcanvas (panneau Activité) ----- */
+.dropdown-divider {
+    border-color: var(--kb-border-light);
+    margin: 0.4rem 0;
+}
+
+.dropdown-header {
+    color: var(--kb-text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+}
+
+/* ============================================
+   OFFCANVAS (panneau Activité)
+   ============================================ */
 .offcanvas {
-    border-left: 1px solid var(--kb-border);
+    background-color: var(--kb-bg-elevated);
+    border-left: 1px solid var(--kb-border) !important;
+    color: var(--kb-text);
 }
 
 .offcanvas-header {
-    border-bottom: 1px solid var(--kb-border);
+    border-bottom: 1px solid var(--kb-border-light);
     padding: 1.25rem 1.5rem;
 }
 
 .offcanvas-title {
     font-weight: 600;
+    color: var(--kb-text);
 }
 
-/* ----- 14. Tables / List groups ----- */
+/* ============================================
+   LIST GROUPS
+   ============================================ */
 .list-group-item {
-    border-color: var(--kb-border);
+    background-color: var(--kb-bg-card);
+    border-color: var(--kb-border-light);
+    color: var(--kb-text);
     padding: 0.875rem 1rem;
 }
 
     .list-group-item:hover {
-        background-color: var(--kb-primary-light);
+        background-color: var(--kb-bg-hover);
     }
 
-/* ----- 15. Misc utilities ----- */
-.text-primary {
-    color: var(--kb-primary) !important;
-}
-
-.bg-primary {
-    background-color: var(--kb-primary) !important;
-}
-
-.bg-light {
-    background-color: #f3f4f6 !important;
-}
-
-/* Page container spacing */
-main {
-    padding-top: 1rem;
-    padding-bottom: 2rem;
-}
-
-/* Page titles */
-h2 {
-    font-size: 1.75rem;
-    margin-bottom: 1.5rem;
-}
-
-/* Comment cards in Card/Details */
 .list-group-flush .list-group-item {
     border-left: 0;
     border-right: 0;
     border-radius: 0 !important;
 }
 
-/* Activity log items */
-#activityList .border-bottom {
-    padding: 0.75rem 0;
-    transition: background-color 0.15s ease;
+/* ============================================
+   MISC UTILITIES
+   ============================================ */
+.text-primary {
+    color: var(--kb-primary) !important;
 }
 
-    #activityList .border-bottom:hover {
-        background-color: var(--kb-bg);
-        border-radius: 0.375rem;
+.text-muted {
+    color: var(--kb-text-muted) !important;
+}
+
+.text-dark {
+    color: var(--kb-text) !important;
+}
+
+.text-danger {
+    color: var(--kb-danger) !important;
+}
+
+.bg-primary {
+    background-color: var(--kb-primary) !important;
+}
+
+.bg-white {
+    background-color: var(--kb-bg-card) !important;
+}
+
+.border-top {
+    border-color: var(--kb-border-light) !important;
+}
+
+.border-bottom {
+    border-color: var(--kb-border-light) !important;
+}
+
+.border {
+    border-color: var(--kb-border) !important;
+}
+
+main {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+}
+
+footer {
+    color: var(--kb-text-muted);
+}
+
+/* ============================================
+   THEME TOGGLE BUTTON
+   ============================================ */
+.theme-toggle {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .theme-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        transform: rotate(20deg);
     }
 
-/* Unread badge animation enhanced */
+/* ============================================
+   ANIMATIONS BADGES
+   ============================================ */
 .unread-badge {
     background: var(--kb-danger) !important;
-    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.4);
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.4);
     font-weight: 600;
 }
+/* ============================================
+   PATCHES — corrections rendus
+   ============================================ */
+
+/* Le bandeau membres avait bg-light en classe Bootstrap hardcodée */
+.bg-light {
+    background-color: var(--kb-bg-subtle) !important;
+    color: var(--kb-text) !important;
+}
+
+/* Textes muted plus lisibles en dark */
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] small.text-muted,
+[data-theme="dark"] .small.text-muted {
+    color: #a1a1aa !important;
+}
+
+/* Forcer le texte des cartes en dark */
+[data-theme="dark"] .card,
+[data-theme="dark"] .card-body,
+[data-theme="dark"] .card-header {
+    color: var(--kb-text);
+}
+
+    [data-theme="dark"] .card p,
+    [data-theme="dark"] .card .text-muted,
+    [data-theme="dark"] .card small {
+        color: var(--kb-text-secondary) !important;
+    }
+
+/* Description des cartes Kanban — plus visible */
+.kanban-card .text-muted {
+    color: var(--kb-text-secondary) !important;
+}
+
+[data-theme="dark"] .kanban-card .text-muted {
+    color: #c4c4c8 !important;
+}
+
+/* Titre carte board (page MyBoards) — bien visible */
+[data-theme="dark"] .card-title {
+    color: var(--kb-text) !important;
+}
+
+/* Bandeau membres — vrai background coloré */
+.bg-light.rounded {
+    background-color: var(--kb-bg-subtle) !important;
+    border: 1px solid var(--kb-border);
+}
+
+[data-theme="dark"] .bg-light.rounded {
+    background-color: var(--kb-bg-card) !important;
+    border: 1px solid var(--kb-border);
+}
+
+/* Liens "← Mes tableaux" plus visibles */
+[data-theme="dark"] a.text-muted {
+    color: var(--kb-text-secondary) !important;
+}
+
+    [data-theme="dark"] a.text-muted:hover {
+        color: var(--kb-primary) !important;
+    }
+
+/* Tableau title et description en dark — bien visibles */
+[data-theme="dark"] h2 {
+    color: var(--kb-text) !important;
+}
+
+[data-theme="dark"] p.text-muted {
+    color: var(--kb-text-secondary) !important;
+}
+
+/* Le placeholder "ajouter une colonne" en dark */
+[data-theme="dark"] .btn-outline-secondary {
+    color: var(--kb-text-secondary) !important;
+    border-color: var(--kb-border) !important;
+}
+
+    [data-theme="dark"] .btn-outline-secondary:hover {
+        background-color: var(--kb-bg-hover) !important;
+        color: var(--kb-text) !important;
+    }
+
+/* Bouton Labels - éviter le coupe */
+.kanban-board .ms-auto,
+.bg-light .ms-auto {
+    flex-shrink: 0;
+}
+
+/* Boutons danger en dark mode */
+[data-theme="dark"] .btn-outline-danger {
+    color: #fca5a5 !important;
+    border-color: #ef4444 !important;
+}
+
+    [data-theme="dark"] .btn-outline-danger:hover {
+        background-color: #ef4444 !important;
+        color: #ffffff !important;
+    }

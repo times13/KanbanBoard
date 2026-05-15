@@ -10,6 +10,13 @@
     <link rel="stylesheet" href="~/KanbanBoard.Web.styles.css" asp-append-version="true" />
     @RenderSection("Styles", required: false)
     <link rel="stylesheet" href="~/css/site-custom.css" asp-append-version="true" />
+    <script>
+        // Évite le flash de thème — applique avant le rendu
+        (function () {
+            const saved = localStorage.getItem('kb-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
 </head>
 <body>
     <header>
@@ -48,6 +55,12 @@
                     <ul class="navbar-nav">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
+                            @* ============ Toggle Light/Dark ============ *@
+                            <li class="nav-item d-flex align-items-center me-2">
+                                <button type="button" id="themeToggle" class="theme-toggle" title="Changer le thème">
+                                    <span id="themeToggleIcon">🌙</span>
+                                </button>
+                            </li>
                             @* ============ Cloche notifications ============ *@
                             <li class="nav-item dropdown me-2">
                                 <a class="nav-link position-relative" href="#"
@@ -275,6 +288,30 @@
                 // ============ Chargement initial ============
                 loadNotifications();
             });
+                        // ============ THEME TOGGLE ============
+            const themeToggle = document.getElementById('themeToggle');
+            const themeToggleIcon = document.getElementById('themeToggleIcon');
+
+            function applyTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                if (themeToggleIcon) {
+                    themeToggleIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+                }
+            }
+
+            // Charger le thème sauvegardé (ou clair par défaut)
+            const savedTheme = localStorage.getItem('kb-theme') || 'light';
+            applyTheme(savedTheme);
+
+            // Toggle au clic
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function () {
+                    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    localStorage.setItem('kb-theme', newTheme);
+                    applyTheme(newTheme);
+                });
+            }
         </script>
 
         @* Antiforgery token global pour les fetch JS *@
