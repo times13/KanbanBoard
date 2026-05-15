@@ -135,6 +135,11 @@
     }
 
     <div class="ms-auto d-flex gap-2">
+        <a asp-controller="Label" asp-action="ManageForBoard" asp-route-boardId="@Model.BoardId"
+           class="btn btn-sm btn-outline-secondary"
+           title="Gérer les étiquettes du tableau">
+            🏷️ Labels
+        </a>
         <button type="button" class="btn btn-sm btn-outline-secondary"
                 data-bs-toggle="offcanvas" data-bs-target="#activityPanel"
                 title="Voir l'activité récente">
@@ -204,6 +209,20 @@
                              data-card-id="@card.Id"
                              data-card-edit-url="@Url.Action("Details", "Card", new { id = card.Id })">
                             <div class="card-body p-2">
+                                @* Badges labels en haut de la carte *@
+                                @if (card.Labels != null && card.Labels.Any())
+                                {
+                                    <div class="mb-1 d-flex flex-wrap gap-1">
+                                        @foreach (var lbl in card.Labels)
+                                        {
+                                            <span class="badge"
+                                                  style="background-color: @lbl.Color; color: white; font-size: 0.7rem; padding: 0.25rem 0.5rem;"
+                                                  title="@lbl.Name">
+                                                @lbl.Name
+                                            </span>
+                                        }
+                                    </div>
+                                }
                                 <p class="mb-1 small fw-bold">@card.Title</p>
                                 @if (!string.IsNullOrWhiteSpace(card.Description))
                                 {
@@ -898,7 +917,12 @@
                     'CommentAdded': '💬',
                     'CommentDeleted': '🗑️',
                     'AttachmentUploaded': '📎',
-                    'AttachmentDeleted': '🗑️'
+                    'AttachmentDeleted': '🗑️',
+                    'LabelCreated': '🏷️',
+                    'LabelUpdated': '🏷️',
+                    'LabelDeleted': '🗑️',
+                    'LabelAddedToCard': '🏷️',
+                    'LabelRemovedFromCard': '🏷️'
                 };
                 return icons[action] || '•';
             }
@@ -925,7 +949,12 @@
                     'CommentAdded': `a commenté ${entity}`,
                     'CommentDeleted': `a supprimé un commentaire ${entity}`,
                     'AttachmentUploaded': `a ajouté ${entity}`,
-                    'AttachmentDeleted': `a supprimé ${entity}`
+                    'AttachmentDeleted': `a supprimé ${entity}`,
+                    'LabelCreated': `a créé le label ${entity}`,
+                    'LabelUpdated': `a modifié le label ${entity}`,
+                    'LabelDeleted': `a supprimé le label ${entity}`,
+                    'LabelAddedToCard': `a ajouté le label ${entity}`,
+                    'LabelRemovedFromCard': `a retiré le label ${entity}`
                 };
                 return messages[log.action] || log.action;
             }
@@ -979,7 +1008,12 @@
                 "ColumnRenamed": `✏️ Colonne renommée en « ${payload.title} » par ${payload.triggeredBy}`,
                 "ColumnDeleted": `🗑️ Une colonne a été supprimée par ${payload.triggeredBy}`,
                 "AttachmentAdded":   `📎 Pièce jointe « ${payload.fileName} » ajoutée par ${payload.triggeredBy}`,
-                "AttachmentDeleted": `📎 Pièce jointe supprimée par ${payload.triggeredBy}`
+                "AttachmentDeleted": `📎 Pièce jointe supprimée par ${payload.triggeredBy}`,
+                "LabelCreated": `🏷️ Nouveau label créé par ${payload.triggeredBy}`,
+                "LabelUpdated": `🏷️ Label modifié par ${payload.triggeredBy}`,
+                "LabelDeleted": `🏷️ Label supprimé par ${payload.triggeredBy}`,
+                "LabelAddedToCard": `🏷️ Label ajouté à une carte par ${payload.triggeredBy}`,
+                "LabelRemovedFromCard": `🏷️ Label retiré d'une carte par ${payload.triggeredBy}`
             };
 
             const msg = messages[payload.action] || `Mise à jour : ${payload.action}`;

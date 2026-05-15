@@ -20,13 +20,15 @@ public static class ActivityAction
     public const string MemberAdded = "MemberAdded";
     public const string MemberRemoved = "MemberRemoved";
     public const string MemberRoleChanged = "MemberRoleChanged";
+    public const string MemberLeft = "MemberLeft";
 
     // Commentaires
     public const string CommentAdded = "CommentAdded";
     public const string CommentDeleted = "CommentDeleted";
 
-    // Labels (pas implémentés mais réservés)
+    // Labels
     public const string LabelCreated = "LabelCreated";
+    public const string LabelUpdated = "LabelUpdated";
     public const string LabelAddedToCard = "LabelAddedToCard";
     public const string LabelRemovedFromCard = "LabelRemovedFromCard";
     public const string LabelDeleted = "LabelDeleted";

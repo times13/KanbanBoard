@@ -289,7 +289,100 @@
                     </div>
                 </div>
             </div>
+            @* ============ Section Labels ============ *@
+            @{
+                var assignedLabels = ViewData["AssignedLabels"] as List<KanbanBoard.LibrairieMetier.ViewModels.LabelViewModel>
+                ?? new List<KanbanBoard.LibrairieMetier.ViewModels.LabelViewModel>();
+                var availableLabels = ViewData["AvailableLabels"] as List<KanbanBoard.LibrairieMetier.ViewModels.LabelViewModel>
+                ?? new List<KanbanBoard.LibrairieMetier.ViewModels.LabelViewModel>();
+            }
 
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="card-title text-muted text-uppercase small">
+                        🏷️ Labels
+                        <span class="badge bg-secondary">@assignedLabels.Count</span>
+                    </h6>
+
+                    @* Labels assignés *@
+                    @if (!assignedLabels.Any())
+                    {
+                        <p class="text-muted small fst-italic mb-2">Aucun label.</p>
+                    }
+                    else
+                    {
+                        <div class="mb-2 d-flex flex-wrap gap-1">
+                            @foreach (var lbl in assignedLabels)
+                            {
+                                <span class="badge d-inline-flex align-items-center"
+                                      style="background-color: @lbl.Color; color: white; padding: 0.35rem 0.6rem;">
+                                    @lbl.Name
+                                    @if (canWrite)
+                                    {
+                                        <form asp-controller="Label" asp-action="UnassignFromCard" method="post"
+                                              class="d-inline ms-2 m-0">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="cardId" value="@Model.Id" />
+                                            <input type="hidden" name="labelId" value="@lbl.Id" />
+                                            <button type="submit"
+                                                    class="btn btn-sm p-0 text-white"
+                                                    style="background: transparent; border: none; line-height: 1;"
+                                                    title="Retirer ce label">
+                                                ✕
+                                            </button>
+                                        </form>
+                                    }
+                                </span>
+                            }
+                        </div>
+                    }
+
+                    @* Ajouter un label (Member+) *@
+                    @if (canWrite)
+                    {
+                        @if (availableLabels.Any())
+                        {
+                            <div class="dropdown mt-2">
+                                <button class="btn btn-sm btn-outline-primary dropdown-toggle w-100"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false">
+                                    + Ajouter un label
+                                </button>
+                                <ul class="dropdown-menu w-100 shadow">
+                                    @foreach (var lbl in availableLabels)
+                                    {
+                                        <li>
+                                            <form asp-controller="Label" asp-action="AssignToCard" method="post" class="m-0">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="cardId" value="@Model.Id" />
+                                                <input type="hidden" name="labelId" value="@lbl.Id" />
+                                                <button type="submit" class="dropdown-item d-flex align-items-center">
+                                                    <span class="badge me-2"
+                                                          style="background-color: @lbl.Color; color: white;">
+                                                        @lbl.Name
+                                                    </span>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted small fst-italic mb-0 mt-2">
+                                Tous les labels du board sont déjà assignés.
+                                <a asp-controller="Label" asp-action="ManageForBoard"
+                                   asp-route-boardId="@Model.BoardId"
+                                   class="text-decoration-none">
+                                    Gérer les labels →
+                                </a>
+                            </p>
+                        }
+                    }
+                </div>
+            </div>
             @* Bouton supprimer (Admin only) *@
             @if (isAdmin)
             {

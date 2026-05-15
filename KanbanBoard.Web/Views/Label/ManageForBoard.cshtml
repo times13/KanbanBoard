@@ -1,0 +1,314 @@
+﻿@model List<KanbanBoard.LibrairieMetier.ViewModels.LabelViewModel>
+@{
+    var boardId = ViewData["BoardId"] as int? ?? 0;
+    var isAdmin = ViewData["IsAdmin"] is true;
+    ViewData["Title"] = "Gestion des labels";
+
+    // Palette de couleurs préréglées (les Admins peuvent aussi taper la leur)
+    var presetColors = new[]
+    {
+        new { Hex = "#dc3545", Name = "Rouge" },        // Bug
+        new { Hex = "#fd7e14", Name = "Orange" },       // Urgent
+        new { Hex = "#ffc107", Name = "Jaune" },        // Attention
+        new { Hex = "#198754", Name = "Vert" },         // Feature
+        new { Hex = "#0d6efd", Name = "Bleu" },         // Frontend
+        new { Hex = "#6610f2", Name = "Violet" },       // Backend
+        new { Hex = "#d63384", Name = "Rose" },         // Design
+        new { Hex = "#6c757d", Name = "Gris" }          // Documentation
+    };
+}
+
+<div class="container mt-4">
+
+    @* ============ TempData ============ *@
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* ============ Header ============ *@
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <a asp-controller="Board" asp-action="Details" asp-route-id="@boardId"
+               class="btn btn-sm btn-outline-secondary mb-2">
+                ← Retour au tableau
+            </a>
+            <h2 class="mb-1">🏷️ Étiquettes du tableau</h2>
+            <p class="text-muted mb-0">
+                Organisez vos cartes par type, priorité ou thématique.
+            </p>
+        </div>
+    </div>
+
+    @if (!isAdmin)
+    {
+        <div class="alert alert-info" role="alert">
+            👁️ <strong>Mode lecture seule</strong> — Seuls les Admins peuvent créer, modifier ou supprimer des labels.
+        </div>
+    }
+
+    <div class="row">
+
+        @* ============ Colonne gauche — Liste des labels existants ============ *@
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        Labels existants
+                        <span class="badge bg-secondary ms-2">@Model.Count</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.Any())
+                    {
+                        <p class="text-muted text-center py-3 mb-0">
+                            Aucun label pour ce tableau. @(isAdmin ? "Créez-en un à droite !" : "")
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var label in Model)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center flex-grow-1">
+                                        @* Badge label coloré *@
+                                        <span class="badge me-3"
+                                              style="background-color: @label.Color; color: white; font-size: 0.9rem; padding: 0.4rem 0.75rem;">
+                                            @label.Name
+                                        </span>
+                                        <small class="text-muted">
+                                            @label.CardCount carte@(label.CardCount > 1 ? "s" : "")
+                                        </small>
+                                    </div>
+
+                                    @if (isAdmin)
+                                    {
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-edit-label"
+                                                    data-label-id="@label.Id"
+                                                    data-label-name="@label.Name"
+                                                    data-label-color="@label.Color"
+                                                    title="Modifier">
+                                                ✏️
+                                            </button>
+                                            <form asp-action="Delete" method="post"
+                                                  onsubmit="return confirm('Supprimer le label « @label.Name » ?@(label.CardCount > 0 ? $" Il sera retiré de {label.CardCount} carte(s)." : "")');"
+                                                  class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@label.Id" />
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger"
+                                                        title="Supprimer">
+                                                    🗑️
+                                                </button>
+                                            </form>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* ============ Colonne droite — Formulaire création ============ *@
+        @if (isAdmin)
+        {
+            <div class="col-md-5">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">➕ Nouveau label</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="Create" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="boardId" value="@boardId" />
+
+                            <div class="mb-3">
+                                <label for="newLabelName" class="form-label">Nom <span class="text-danger">*</span></label>
+                                <input type="text" id="newLabelName" name="name"
+                                       class="form-control" maxlength="50" required
+                                       placeholder="Ex: Bug, Feature, Urgent..." />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="newLabelColor" class="form-label">Couleur <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="color" id="newLabelColor" name="color"
+                                           class="form-control form-control-color" value="#0d6efd" required />
+                                    <input type="text" id="newLabelColorHex"
+                                           class="form-control" value="#0d6efd"
+                                           pattern="^#[0-9A-Fa-f]{6}$" maxlength="7" readonly />
+                                </div>
+                            </div>
+
+                            @* Palette couleurs préréglées *@
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Couleurs préréglées</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach (var preset in presetColors)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm preset-color"
+                                                data-color="@preset.Hex"
+                                                style="background-color: @preset.Hex; width: 32px; height: 32px; border: 2px solid #dee2e6; padding: 0;"
+                                                title="@preset.Name">
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            @* Aperçu live du label *@
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Aperçu</label>
+                                <div>
+                                    <span id="labelPreview" class="badge"
+                                          style="background-color: #0d6efd; color: white; font-size: 0.9rem; padding: 0.4rem 0.75rem;">
+                                        Mon label
+                                    </span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">
+                                ✅ Créer le label
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@* ============ Modal Édition ============ *@
+@if (isAdmin)
+{
+    <div class="modal fade" id="editLabelModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-action="Update" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="editLabelId" />
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">✏️ Modifier le label</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="editLabelName" class="form-label">Nom <span class="text-danger">*</span></label>
+                            <input type="text" id="editLabelName" name="name"
+                                   class="form-control" maxlength="50" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editLabelColor" class="form-label">Couleur <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="color" id="editLabelColor" name="color"
+                                       class="form-control form-control-color" required />
+                                <input type="text" id="editLabelColorHex"
+                                       class="form-control" readonly />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Aperçu</label>
+                            <div>
+                                <span id="editLabelPreview" class="badge"
+                                      style="color: white; font-size: 0.9rem; padding: 0.4rem 0.75rem;">
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // ============ Création — couleur picker + preview ============
+            const colorPicker = document.getElementById('newLabelColor');
+            const colorHex = document.getElementById('newLabelColorHex');
+            const labelPreview = document.getElementById('labelPreview');
+            const labelNameInput = document.getElementById('newLabelName');
+
+            if (colorPicker) {
+                colorPicker.addEventListener('input', function () {
+                    colorHex.value = this.value;
+                    labelPreview.style.backgroundColor = this.value;
+                });
+
+                labelNameInput.addEventListener('input', function () {
+                    labelPreview.textContent = this.value || 'Mon label';
+                });
+
+                // Palette préréglée
+                document.querySelectorAll('.preset-color').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const color = this.dataset.color;
+                        colorPicker.value = color;
+                        colorHex.value = color;
+                        labelPreview.style.backgroundColor = color;
+                    });
+                });
+            }
+
+            // ============ Édition — ouvrir modal préremplie ============
+            document.querySelectorAll('.btn-edit-label').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const id = this.dataset.labelId;
+                    const name = this.dataset.labelName;
+                    const color = this.dataset.labelColor;
+
+                    document.getElementById('editLabelId').value = id;
+                    document.getElementById('editLabelName').value = name;
+                    document.getElementById('editLabelColor').value = color;
+                    document.getElementById('editLabelColorHex').value = color;
+
+                    const preview = document.getElementById('editLabelPreview');
+                    preview.textContent = name;
+                    preview.style.backgroundColor = color;
+
+                    new bootstrap.Modal(document.getElementById('editLabelModal')).show();
+                });
+            });
+
+            // Édition — live preview
+            const editColor = document.getElementById('editLabelColor');
+            const editColorHex = document.getElementById('editLabelColorHex');
+            const editName = document.getElementById('editLabelName');
+            const editPreview = document.getElementById('editLabelPreview');
+
+            if (editColor) {
+                editColor.addEventListener('input', function () {
+                    editColorHex.value = this.value;
+                    editPreview.style.backgroundColor = this.value;
+                });
+                editName.addEventListener('input', function () {
+                    editPreview.textContent = this.value || 'Mon label';
+                });
+            }
+        });
+    </script>
+}

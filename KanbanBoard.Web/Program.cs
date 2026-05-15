@@ -32,6 +32,7 @@ builder.Services.AddScoped<IUserDA, UserDA>();
 builder.Services.AddScoped<IAttachmentDA, AttachmentDA>();
 builder.Services.AddScoped<IActivityLogDA, ActivityLogDA>();
 builder.Services.AddScoped<ActivityLogService>();
+builder.Services.AddScoped<ILabelDA, LabelDA>();
 
 // -- Authentification par cookie (maison) --
 builder.Services

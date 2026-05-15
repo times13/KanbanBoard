@@ -38,4 +38,6 @@ public class KanbanCardViewModel
     public int CommentCount { get; set; }
     public int UnreadCount { get; set; }
     public int AttachmentCount { get; set; }
+    /// <summary>Labels assignés à la carte (pour affichage des badges colorés).</summary>
+    public List<LabelViewModel> Labels { get; set; } = new();
 }

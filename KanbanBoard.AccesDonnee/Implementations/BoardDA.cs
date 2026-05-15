@@ -86,7 +86,14 @@ public class BoardDA : IBoardDA
                 AssigneeUsername = card.Assignee != null ? card.Assignee.Username : null,
                 IsArchived = card.IsArchived,
                 CommentCount = card.COMMENTs.Count(co => true),
-                AttachmentCount = card.ATTACHMENTs.Count(at => true)
+                AttachmentCount = card.ATTACHMENTs.Count(at => true),
+                Labels = card.Labels.Select(l => new LabelViewModel
+                {
+                    Id = l.Id,
+                    BoardId = l.BoardId,
+                    Name = l.Name,
+                    Color = l.Color
+                }).ToList()
             })
             .ToList()
     })

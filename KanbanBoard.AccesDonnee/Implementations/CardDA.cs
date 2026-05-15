@@ -60,7 +60,14 @@ public class CardDA : ICardDA
                 DueDate = c.DueDate,
                 AssigneeId = c.AssigneeId,
                 AssigneeUsername = c.Assignee != null ? c.Assignee.Username : null,
-                IsArchived = c.IsArchived
+                IsArchived = c.IsArchived,
+                Labels = c.Labels.Select(l => new LabelViewModel
+                {
+                    Id = l.Id,
+                    BoardId = l.BoardId,
+                    Name = l.Name,
+                    Color = l.Color
+                }).ToList()
             })
             .FirstOrDefaultAsync();
     }

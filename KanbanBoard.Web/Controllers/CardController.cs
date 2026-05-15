@@ -23,9 +23,11 @@ public class CardController : Controller
     private readonly NotificationService _notif;
     private readonly ActivityLogService _activityLog;
     private readonly IHubContext<KanbanHub> _hub;
+    private readonly ILabelDA _labelDA;
 
     public CardController(ICardDA cardDA, IColumnDA columnDA, IBoardDA boardDA, ICommentDA commentDA, ICardReadDA cardReadDA,
-        IAttachmentDA attachmentDA, NotificationService notif, ActivityLogService activityLog, IHubContext<KanbanHub> hub)
+        IAttachmentDA attachmentDA, NotificationService notif, ActivityLogService activityLog,
+        IHubContext<KanbanHub> hub, ILabelDA labelDA)
     {
         _cardDA = cardDA;
         _columnDA = columnDA;
@@ -36,6 +38,7 @@ public class CardController : Controller
         _notif = notif;
         _activityLog = activityLog;
         _hub = hub;
+        _labelDA = labelDA;
     }
 
     // ---------- CREATE ----------
@@ -243,6 +246,19 @@ public class CardController : Controller
 
         // Récupérer le nom de la colonne pour l'afficher
         var columnTitle = await _columnDA.GetColumnTitleAsync(card.ColumnId) ?? "?";
+
+        // Charger les labels avec info d'assignation (pour le dropdown "Ajouter un label")
+        var labelsWithAssignment = await _labelDA.GetForBoardWithAssignmentAsync(boardId.Value, id);
+
+        ViewData["AssignedLabels"] = labelsWithAssignment
+            .Where(x => x.IsAssigned)
+            .Select(x => x.Label)
+            .ToList();
+
+        ViewData["AvailableLabels"] = labelsWithAssignment
+            .Where(x => !x.IsAssigned)
+            .Select(x => x.Label)
+            .ToList();
 
         // Construire le ViewModel — on réutilise le EditCardViewModel avec mêmes champs
         var model = new EditCardViewModel

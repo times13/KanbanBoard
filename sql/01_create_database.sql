@@ -265,14 +265,14 @@ CREATE TABLE dbo.ACTIVITY_LOG (
     CONSTRAINT CK_ACTIVITY_LOG_Action
         CHECK (Action IN (
             N'CardCreated', N'CardMoved', N'CardUpdated', N'CardArchived',
-            N'CardUnarchived', N'CardDeleted',
-            N'ColumnCreated', N'ColumnRenamed', N'ColumnMoved', N'ColumnDeleted',
-            N'MemberAdded', N'MemberRemoved', N'MemberRoleChanged',
-            N'CommentAdded', N'CommentDeleted',
-            N'LabelCreated', N'LabelAddedToCard',
-            N'LabelRemovedFromCard', N'LabelDeleted',
-            N'AttachmentUploaded', N'AttachmentDeleted',
-            N'BoardCreated', N'BoardUpdated'
+			N'CardUnarchived', N'CardDeleted',
+			N'ColumnCreated', N'ColumnRenamed', N'ColumnMoved', N'ColumnDeleted',
+			N'MemberAdded', N'MemberRemoved', N'MemberRoleChanged', N'MemberLeft',
+			N'CommentAdded', N'CommentDeleted',
+			N'LabelCreated', N'LabelUpdated', N'LabelAddedToCard',
+			N'LabelRemovedFromCard', N'LabelDeleted',
+			N'AttachmentUploaded', N'AttachmentDeleted',
+			N'BoardCreated', N'BoardUpdated'
         ))
 );
 GO
