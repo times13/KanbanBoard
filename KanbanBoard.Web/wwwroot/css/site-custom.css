@@ -1,0 +1,385 @@
+﻿/* ============================================
+   KanbanBoard — Custom theme (Indigo/Violet moderne)
+   Inspiré de Linear, Notion, Vercel
+   ============================================ */
+
+/* ----- 1. Google Fonts ----- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ----- 2. CSS Variables — Palette ----- */
+:root {
+    /* Couleurs principales */
+    --kb-primary: #6366f1; /* Indigo 500 */
+    --kb-primary-hover: #4f46e5; /* Indigo 600 */
+    --kb-primary-light: #eef2ff; /* Indigo 50 */
+    --kb-primary-dark: #3730a3; /* Indigo 800 */
+    /* Accent */
+    --kb-accent: #8b5cf6; /* Violet 500 */
+    --kb-accent-light: #f3f4f6;
+    /* Neutres */
+    --kb-bg: #f9fafb; /* Background principal */
+    --kb-bg-card: #ffffff;
+    --kb-border: #e5e7eb;
+    --kb-text: #111827;
+    --kb-text-muted: #6b7280;
+    /* Status colors (priorités) */
+    --kb-success: #10b981;
+    --kb-warning: #f59e0b;
+    --kb-danger: #ef4444;
+    --kb-info: #3b82f6;
+    /* Shadows */
+    --kb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --kb-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --kb-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --kb-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* ----- 3. Base typography ----- */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: var(--kb-bg);
+    color: var(--kb-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--kb-text);
+}
+
+/* ----- 4. Navbar ----- */
+.navbar {
+    background: linear-gradient(135deg, var(--kb-primary) 0%, var(--kb-accent) 100%) !important;
+    box-shadow: var(--kb-shadow-md);
+    border: none !important;
+}
+
+    .navbar .navbar-brand,
+    .navbar .nav-link {
+        color: #ffffff !important;
+        font-weight: 600;
+    }
+
+        .navbar .nav-link:hover {
+            color: rgba(255, 255, 255, 0.85) !important;
+        }
+
+    .navbar .navbar-brand {
+        font-size: 1.25rem;
+        letter-spacing: -0.025em;
+    }
+
+/* ----- 5. Buttons ----- */
+.btn {
+    font-weight: 500;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.15s ease;
+    letter-spacing: -0.01em;
+}
+
+.btn-primary {
+    background-color: var(--kb-primary);
+    border-color: var(--kb-primary);
+    box-shadow: var(--kb-shadow-sm);
+}
+
+    .btn-primary:hover, .btn-primary:focus {
+        background-color: var(--kb-primary-hover);
+        border-color: var(--kb-primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--kb-shadow-md);
+    }
+
+.btn-outline-primary {
+    color: var(--kb-primary);
+    border-color: var(--kb-primary);
+}
+
+    .btn-outline-primary:hover {
+        background-color: var(--kb-primary);
+        border-color: var(--kb-primary);
+    }
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* ----- 6. Cards ----- */
+.card {
+    border: 1px solid var(--kb-border);
+    border-radius: 0.75rem;
+    background-color: var(--kb-bg-card);
+    box-shadow: var(--kb-shadow-sm);
+    transition: box-shadow 0.15s ease;
+}
+
+.card-header {
+    background-color: var(--kb-bg-card) !important;
+    border-bottom: 1px solid var(--kb-border);
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.shadow-sm {
+    box-shadow: var(--kb-shadow-sm) !important;
+}
+
+/* ----- 7. Kanban Board styles ----- */
+.kanban-board {
+    padding: 1rem 0.5rem;
+    background-color: var(--kb-bg);
+}
+
+.kanban-column .card {
+    background-color: #f3f4f6 !important;
+    border: 1px solid var(--kb-border);
+}
+
+.kanban-column .card-header {
+    background-color: #f9fafb !important;
+    border-bottom: 1px solid var(--kb-border);
+}
+
+.kanban-column h6 {
+    color: var(--kb-text);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+}
+
+/* Cartes Kanban */
+.kanban-card {
+    background-color: var(--kb-bg-card) !important;
+    border: 1px solid var(--kb-border) !important;
+    border-radius: 0.5rem !important;
+    transition: all 0.15s ease;
+    cursor: grab;
+    box-shadow: var(--kb-shadow-sm) !important;
+}
+
+    .kanban-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--kb-shadow-md) !important;
+        border-color: var(--kb-primary) !important;
+    }
+
+    .kanban-card:active {
+        cursor: grabbing;
+    }
+
+.sortable-ghost {
+    opacity: 0.4;
+    background: var(--kb-primary-light) !important;
+}
+
+.sortable-drag {
+    transform: rotate(2deg);
+    box-shadow: var(--kb-shadow-lg) !important;
+}
+
+/* ----- 8. Badges ----- */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    padding: 0.35em 0.65em;
+    border-radius: 0.375rem;
+}
+
+    .badge.bg-primary {
+        background-color: var(--kb-primary) !important;
+    }
+
+    .badge.bg-danger {
+        background-color: var(--kb-danger) !important;
+    }
+
+    .badge.bg-warning {
+        background-color: var(--kb-warning) !important;
+        color: #fff !important;
+    }
+
+    .badge.bg-success {
+        background-color: var(--kb-success) !important;
+    }
+
+    .badge.bg-info {
+        background-color: var(--kb-info) !important;
+        color: #fff !important;
+    }
+
+/* ----- 9. Forms ----- */
+.form-control, .form-select {
+    border: 1px solid var(--kb-border);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--kb-primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+.form-label {
+    font-weight: 500;
+    color: var(--kb-text);
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* ----- 10. Modals ----- */
+.modal-content {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: var(--kb-shadow-lg);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--kb-border);
+    padding: 1.25rem 1.5rem;
+}
+
+.modal-title {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--kb-border);
+    padding: 1rem 1.5rem;
+}
+
+/* ----- 11. Alerts ----- */
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    font-weight: 500;
+}
+
+.alert-success {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.alert-danger {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.alert-info {
+    background-color: var(--kb-primary-light);
+    color: var(--kb-primary-dark);
+}
+
+.alert-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+/* ----- 12. Dropdowns ----- */
+.dropdown-menu {
+    border: 1px solid var(--kb-border);
+    border-radius: 0.5rem;
+    box-shadow: var(--kb-shadow-md);
+    padding: 0.5rem;
+}
+
+.dropdown-item {
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+    .dropdown-item:hover {
+        background-color: var(--kb-primary-light);
+        color: var(--kb-primary-dark);
+    }
+
+/* ----- 13. Offcanvas (panneau Activité) ----- */
+.offcanvas {
+    border-left: 1px solid var(--kb-border);
+}
+
+.offcanvas-header {
+    border-bottom: 1px solid var(--kb-border);
+    padding: 1.25rem 1.5rem;
+}
+
+.offcanvas-title {
+    font-weight: 600;
+}
+
+/* ----- 14. Tables / List groups ----- */
+.list-group-item {
+    border-color: var(--kb-border);
+    padding: 0.875rem 1rem;
+}
+
+    .list-group-item:hover {
+        background-color: var(--kb-primary-light);
+    }
+
+/* ----- 15. Misc utilities ----- */
+.text-primary {
+    color: var(--kb-primary) !important;
+}
+
+.bg-primary {
+    background-color: var(--kb-primary) !important;
+}
+
+.bg-light {
+    background-color: #f3f4f6 !important;
+}
+
+/* Page container spacing */
+main {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+}
+
+/* Page titles */
+h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Comment cards in Card/Details */
+.list-group-flush .list-group-item {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0 !important;
+}
+
+/* Activity log items */
+#activityList .border-bottom {
+    padding: 0.75rem 0;
+    transition: background-color 0.15s ease;
+}
+
+    #activityList .border-bottom:hover {
+        background-color: var(--kb-bg);
+        border-radius: 0.375rem;
+    }
+
+/* Unread badge animation enhanced */
+.unread-badge {
+    background: var(--kb-danger) !important;
+    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.4);
+    font-weight: 600;
+}
